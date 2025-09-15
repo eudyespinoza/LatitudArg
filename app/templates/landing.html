@@ -1,0 +1,198 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+
+<!-- Hero -->
+<section class="py-5 py-lg-6" id="hero">
+  <div class="container">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-6">
+        <span class="badge rounded-pill bg-primary-subtle text-primary mb-3"><i class="bi bi-broadcast-pin me-1"></i>Geolocalización en Vivo</span>
+        <h1 class="display-5 fw-bold mb-3">Tu flota bajo control, con dispositivo propio</h1>
+        <p class="lead text-muted">Fabricamos nuestro dispositivo GPS y brindamos soporte integral del servicio y del equipo. Monitorea vehículos y activos en tiempo real con precisión de mapa, alertas inteligentes y reportes claros que impulsan decisiones más rápidas y seguras.</p>
+        <div class="d-flex gap-2 mt-3">
+          <a href="{{ url_for('main.register') }}" class="btn btn-primary btn-lg"><i class="bi bi-person-plus me-2"></i>Probar gratis</a>
+          <a href="{{ url_for('main.login') }}" class="btn btn-outline-primary btn-lg"><i class="bi bi-box-arrow-in-right me-2"></i>Iniciar sesión</a>
+        </div>
+        <div class="d-flex gap-4 mt-4 text-muted small flex-wrap">
+          <div><i class="bi bi-lightning-charge-fill text-warning me-1"></i>Actualizaciones instantáneas</div>
+          <div><i class="bi bi-shield-check text-success me-1"></i>Datos protegidos</div>
+          <div><i class="bi bi-tools text-primary me-1"></i>Soporte del dispositivo</div>
+          <div><i class="bi bi-cloud-check text-info me-1"></i>Disponibilidad 24/7</div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="bg-light border rounded shadow-sm p-3">
+          <div id="landing-map" style="height: 420px; width: 100%;" class="rounded"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </section>
+
+<!-- Features -->
+<section class="py-5 bg-body-tertiary" id="features">
+  <div class="container">
+    <div class="row text-center mb-4">
+      <div class="col">
+        <h2 class="fw-semibold">Todo lo que necesitas para tu operación</h2>
+        <p class="text-muted">Desde una moto hasta una flota completa, escalamos contigo.</p>
+      </div>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-3">
+        <div class="p-4 border rounded h-100 shadow-sm">
+          <i class="bi bi-geo-alt-fill fs-3 text-primary"></i>
+          <h5 class="mt-3">Posición en tiempo real</h5>
+          <p class="text-muted small">Visualiza ubicación, velocidad y estado del vehículo al instante.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="p-4 border rounded h-100 shadow-sm">
+          <i class="bi bi-activity fs-3 text-success"></i>
+          <h5 class="mt-3">Historial de recorridos</h5>
+          <p class="text-muted small">Recorre rutas pasadas y descarga reportes para auditoría.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="p-4 border rounded h-100 shadow-sm">
+          <i class="bi bi-bell-fill fs-3 text-warning"></i>
+          <h5 class="mt-3">Alertas inteligentes</h5>
+          <p class="text-muted small">Eventos de encendido, señal y movimientos inusuales en segundos.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="p-4 border rounded h-100 shadow-sm">
+          <i class="bi bi-cpu fs-3 text-info"></i>
+          <h5 class="mt-3">Dispositivo propio + soporte</h5>
+          <p class="text-muted small">Hardware GPS fabricado por nosotros y soporte integral del equipo.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<section id="pricing" class="py-5">
+  <div class="container">
+    <div class="row text-center mb-4"><div class="col"><h2 class="fw-semibold">Planes simples, sin sorpresas</h2><p class="text-muted">Precios en ARS por mes. Soporte incluido.</p></div></div>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="p-4 border rounded h-100 text-center">
+          <h5>1 Vehículo</h5><div class="display-6 fw-bold mb-2">$35.000<span class="fs-6 text-muted">/mes</span></div>
+          <ul class="list-unstyled text-muted small mb-3"><li>Servicio por 1 vehículo</li><li>Mapa en vivo + historial</li><li>Soporte del servicio y dispositivo</li></ul>
+          <a href="{{ url_for('main.register') }}" class="btn btn-outline-primary">Empezar</a>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="p-4 border rounded h-100 text-center">
+          <h5>PyME (5–9 vehículos)</h5><div class="display-6 fw-bold mb-2">$30.000<span class="fs-6 text-muted">/vehículo/mes</span></div>
+          <ul class="list-unstyled text-muted small mb-3"><li>Más de 4 y menos de 10</li><li>Mapa en vivo + historial</li><li>Soporte del servicio y dispositivo</li></ul>
+          <a href="{{ url_for('main.register') }}" class="btn btn-primary">Empezar</a>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="p-4 border rounded h-100 text-center">
+          <h5>Flotas</h5><div class="display-6 fw-bold mb-2">A medida</div>
+          <ul class="list-unstyled text-muted small mb-3"><li>10+ vehículos</li><li>Precios preferenciales</li><li>Soporte dedicado</li></ul>
+          <a href="mailto:contacto@latitudarg.com" class="btn btn-outline-primary">Contactar</a>
+        </div>
+      </div>
+    </div>
+    <div class="row g-4 mt-3">
+      <div class="col-12">
+        <div class="p-4 border rounded h-100">
+          <div class="d-flex align-items-start gap-3">
+            <i class="bi bi-geo-alt fs-3 text-primary"></i>
+            <div>
+              <h5 class="mb-1">Dispositivo GPS</h5>
+              <ul class="list-unstyled text-muted small mb-0">
+                <li>Compra: <strong>$90.000</strong> (único pago)</li>
+                <li>Alquiler: <strong>$2.500/mes</strong> adicional al precio del servicio</li>
+                <li>Fabricación propia con soporte del dispositivo</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </section>
+
+<!-- FAQ -->
+<section id="faq" class="py-5 bg-body-tertiary">
+  <div class="container">
+    <div class="row text-center mb-4"><div class="col"><h2 class="fw-semibold">Preguntas frecuentes</h2></div></div>
+    <div class="accordion" id="faqAcc">
+      <div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#q1">¿Qué dispositivos soportan?</button></h2><div id="q1" class="accordion-collapse collapse show" data-bs-parent="#faqAcc"><div class="accordion-body text-muted">Trabajamos con dispositivos GPS estándar y podemos integrar otros bajo consulta.</div></div></div>
+      <div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q2">¿Puedo exportar recorridos?</button></h2><div id="q2" class="accordion-collapse collapse" data-bs-parent="#faqAcc"><div class="accordion-body text-muted">Sí, desde el historial puedes descargar CSV y consultarlo vía API.</div></div></div>
+      <div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q3">¿Hay contrato mínimo?</button></h2><div id="q3" class="accordion-collapse collapse" data-bs-parent="#faqAcc"><div class="accordion-body text-muted">No. Puedes cancelar en cualquier momento.</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="py-5">
+  <div class="container">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-6">
+        <h3 class="fw-semibold">Pon tu flota online en 3 pasos</h3>
+        <ol class="mt-3 text-muted">
+          <li class="mb-2"><strong>Conecta nuestro dispositivo</strong> GPS (o usa el que ya tienes).</li>
+          <li class="mb-2"><strong>Activa tu cuenta</strong> y registra la patente o identificador.</li>
+          <li class="mb-2"><strong>Monitorea en vivo</strong> desde cualquier dispositivo y comparte reportes.</li>
+        </ol>
+        <a href="{{ url_for('main.register') }}" class="btn btn-primary mt-2"><i class="bi bi-person-plus me-1"></i>Crear cuenta</a>
+      </div>
+      <div class="col-lg-6">
+        <div class="p-4 border rounded bg-light shadow-sm">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-speedometer fs-2 text-primary me-3"></i>
+            <div>
+              <div class="fw-semibold">Panel amigable</div>
+              <div class="text-muted small">Pensado para ver lo importante de un vistazo.</div>
+            </div>
+          </div>
+          <hr>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-hdd-network fs-2 text-success me-3"></i>
+            <div>
+              <div class="fw-semibold">Infraestructura robusta</div>
+              <div class="text-muted small">Actualizaciones en vivo con baja latencia.</div>
+            </div>
+          </div>
+          <hr>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-shield-check fs-2 text-info me-3"></i>
+            <div>
+              <div class="fw-semibold">Privacidad y control</div>
+              <div class="text-muted small">Tú decides qué compartes y con quién.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA final -->
+<section class="py-5 bg-primary text-white text-center rounded">
+  <div class="container">
+    <h3 class="fw-semibold mb-2">Empieza hoy y toma el control</h3>
+    <p class="text-white-50 mb-4">Regístrate en minutos. Sin costos ocultos. Soporte humano.</p>
+    <a href="{{ url_for('main.register') }}" class="btn btn-light btn-lg me-2"><i class="bi bi-person-plus me-1"></i>Crear cuenta</a>
+    <a href="{{ url_for('main.login') }}" class="btn btn-outline-light btn-lg"><i class="bi bi-box-arrow-in-right me-1"></i>Iniciar sesión</a>
+  </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  try {
+    var map = L.map('landing-map').setView([-34.6037, -58.3816], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+    L.marker([-34.6037, -58.3816]).addTo(map).bindPopup('Seguimiento en tiempo real').openPopup();
+  } catch(e) { console.warn('Landing map init failed', e); }
+});
+</script>
+{% endblock %}
+
+

@@ -1,0 +1,345 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+<div class="card shadow-lg border-0 animate__animated animate__fadeIn mb-4">
+    <div class="card-body p-5">
+        <h2 class="mb-4 fw-semibold">Panel de Administración</h2>
+
+        <div class="accordion" id="adminAccordion">
+            <!-- Users Section -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="usersHeading">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#usersCollapse" aria-expanded="true" aria-controls="usersCollapse">
+                        <i class="bi bi-people-fill me-2"></i>Gestión de Usuarios
+                    </button>
+                </h2>
+                <div id="usersCollapse" class="accordion-collapse collapse show" aria-labelledby="usersHeading" data-bs-parent="#adminAccordion">
+                    <div class="accordion-body">
+                        <h4 class="mb-3">Agregar Usuario</h4>
+                        <form method="POST">
+                            {{ csrf_field() }}
+                            <div class="row mb-3">
+                                <div class="col-md-3 mb-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                        <input type="text" class="form-control" name="username" placeholder="Usuario" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                        <input type="email" class="form-control" name="email" placeholder="Correo" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                        <input type="password" class="form-control" name="password" placeholder="Contraseña" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                                        <input type="text" class="form-control" name="keyword" placeholder="Palabra Clave (opcional)">
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" name="add_user" class="btn btn-primary transition shadow-sm">
+                                <i class="bi bi-plus-circle me-2"></i>Agregar
+                            </button>
+                        </form>
+
+                        <h4 class="mt-4 mb-3">Usuarios Registrados</h4>
+                        <div class="mb-3">
+                            <input type="text" class="form-control search-filter" id="userSearch" placeholder="Buscar por usuario o palabra clave..." onkeyup="filterUsers()">
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle" id="usersTable">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Usuario</th>
+                                        <th>Correo</th>
+                                        <th>Palabra Clave</th>
+                                        <th>Rol</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in users %}
+                                    <tr>
+                                        <td>{{ user.username }}</td>
+                                        <td>{{ user.email }}</td>
+                                        <td>{{ user.keyword or 'N/A' }}</td>
+                                        <td>{{ user.role|capitalize }}</td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-warning transition shadow-sm" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id }}" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <form action="{{ url_for('main.delete_user') }}" method="POST" style="display: inline;">
+                                                {{ csrf_field() }}
+                                                <input type="hidden" name="user_id" value="{{ user.id }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger transition shadow-sm" title="Eliminar" onclick="return confirm('¿Estás seguro de eliminar este usuario? Esto también eliminará sus Vehículos.')">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    <!-- Edit User Modal -->
+                                    <div class="modal fade" id="editUserModal{{ user.id }}" tabindex="-1" aria-labelledby="editUserModalLabel{{ user.id }}" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content shadow-lg">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="editUserModalLabel{{ user.id }}">Editar Usuario: {{ user.username }}</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <form method="POST" action="{{ url_for('main.update_user') }}">
+                                                        {{ csrf_field() }}
+                                                        <input type="hidden" name="user_id" value="{{ user.id }}">
+                                                        <div class="mb-3">
+                                                            <label for="username{{ user.id }}" class="form-label">Usuario</label>
+                                                            <input type="text" class="form-control" id="username{{ user.id }}" name="username" value="{{ user.username }}" required>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="email{{ user.id }}" class="form-label">Correo</label>
+                                                            <input type="email" class="form-control" id="email{{ user.id }}" name="email" value="{{ user.email }}" required>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="password{{ user.id }}" class="form-label">Nueva Contraseña (dejar en blanco para no cambiar)</label>
+                                                            <input type="password" class="form-control" id="password{{ user.id }}" name="password">
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="keyword{{ user.id }}" class="form-label">Palabra Clave</label>
+                                                            <input type="text" class="form-control" id="keyword{{ user.id }}" name="keyword" value="{{ user.keyword or '' }}">
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="role{{ user.id }}" class="form-label">Rol</label>
+                                                            <select class="form-select" id="role{{ user.id }}" name="role" required>
+                                                                <option value="user" {% if user.role == 'user' %}selected{% endif %}>Usuario</option>
+                                                                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                                                            </select>
+                                                        </div>
+                                                        <button type="submit" class="btn btn-primary transition shadow-sm">
+                                                            <i class="bi bi-check-circle me-2"></i>Guardar
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vehicles Section -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="vehiclesHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#vehiclesCollapse" aria-expanded="false" aria-controls="vehiclesCollapse">
+                        <i class="bi bi-car-front-fill me-2"></i>Gestión de Vehículos
+                    </button>
+                </h2>
+                <div id="vehiclesCollapse" class="accordion-collapse collapse" aria-labelledby="vehiclesHeading" data-bs-parent="#adminAccordion">
+                    <div class="accordion-body">
+                        <h4 class="mb-3">Agregar Vehículo</h4>
+                        <form method="POST">
+                            {{ csrf_field() }}
+                            <div class="row mb-3">
+                                <div class="col-md-3 mb-2">
+                                    <select class="form-select" name="user_id" required>
+                                        <option value="">Seleccionar Usuario</option>
+                                        {% for user in users %}
+                                            <option value="{{ user.id }}">{{ user.username }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-car-front"></i></span>
+                                        <input type="text" class="form-control" name="vehicle_name" placeholder="Nombre del Vehículo" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <select class="form-select" name="vehicle_type" required>
+                                        <option value="moto">Moto</option>
+                                        <option value="auto">Auto</option>
+                                        <option value="camión">camión</option>
+                                        <option value="embarcación">embarcación</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-signpost"></i></span>
+                                        <input type="text" class="form-control" name="patente" placeholder="Patente" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6 mb-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-fingerprint"></i></span>
+                                        <input type="text" class="form-control" name="device_id" placeholder="ID del Dispositivo (UUID o MAC)" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" name="add_vehicle" class="btn btn-primary transition shadow-sm">
+                                <i class="bi bi-plus-circle me-2"></i>Agregar
+                            </button>
+                        </form>
+
+                        <h4 class="mt-4 mb-3">Vehículos Registrados</h4>
+                        <div class="mb-3">
+                            <input type="text" class="form-control search-filter" id="vehicleSearch" placeholder="Buscar por nombre, patente o ID de dispositivo..." onkeyup="filterVehicles()">
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle" id="vehiclesTable">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Patente</th>
+                                        <th>ID Dispositivo</th>
+                                        <th>Tipo</th>
+                                        <th>Usuario</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for vehicle in vehicles %}
+                                    <tr>
+                                        <td>{{ vehicle.name }}</td>
+                                        <td>{{ vehicle.patente }}</td>
+                                        <td>{{ vehicle.device_id or 'N/A' }}</td>
+                                        <td>{{ vehicle.type }}</td>
+                                        <td>{{ vehicle.user.username if vehicle.user else 'Desconocido' }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if vehicle.status == 'active' %}success{% else %}danger{% endif %}">
+                                                {{ vehicle.status|capitalize }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-warning transition shadow-sm" data-bs-toggle="modal" data-bs-target="#editVehicleModal{{ vehicle.id }}" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <form action="{{ url_for('main.delete_vehicle') }}" method="POST" style="display: inline;">
+                                                {{ csrf_field() }}
+                                                <input type="hidden" name="vehicle_id" value="{{ vehicle.id }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger transition shadow-sm" title="Eliminar" onclick="return confirm('¿Estás seguro de eliminar este Vehículo?')">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    <!-- Edit Vehicle Modal -->
+                                    <div class="modal fade" id="editVehicleModal{{ vehicle.id }}" tabindex="-1" aria-labelledby="editVehicleModalLabel{{ vehicle.id }}" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content shadow-lg">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="editVehicleModalLabel{{ vehicle.id }}">Editar Vehículo: {{ vehicle.name }}</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <form method="POST" action="{{ url_for('main.update_vehicle') }}">
+                                                        {{ csrf_field() }}
+                                                        <input type="hidden" name="vehicle_id" value="{{ vehicle.id }}">
+                                                        <div class="mb-3">
+                                                            <label for="user_id{{ vehicle.id }}" class="form-label">Usuario</label>
+                                                            <select class="form-select" id="user_id{{ vehicle.id }}" name="user_id" required>
+                                                                {% for user in users %}
+                                                                    <option value="{{ user.id }}" {% if user.id == vehicle.user_id %}selected{% endif %}>{{ user.username }}</option>
+                                                                {% endfor %}
+                                                            </select>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="name{{ vehicle.id }}" class="form-label">Nombre</label>
+                                                            <input type="text" class="form-control" id="name{{ vehicle.id }}" name="name" value="{{ vehicle.name }}" required>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="patente{{ vehicle.id }}" class="form-label">Patente</label>
+                                                            <input type="text" class="form-control" id="patente{{ vehicle.id }}" name="patente" value="{{ vehicle.patente }}" required>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="device_id{{ vehicle.id }}" class="form-label">ID del Dispositivo</label>
+                                                            <input type="text" class="form-control" id="device_id{{ vehicle.id }}" name="device_id" value="{{ vehicle.device_id or '' }}" placeholder="UUID o MAC">
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="type{{ vehicle.id }}" class="form-label">Tipo</label>
+                                                            <select class="form-select" id="type{{ vehicle.id }}" name="vehicle_type" required>
+                                                                <option value="moto" {% if vehicle.type == 'moto' %}selected{% endif %}>Moto</option>
+                                                                <option value="auto" {% if vehicle.type == 'auto' %}selected{% endif %}>Auto</option>
+                                                                <option value="camión" {% if vehicle.type == 'camión' %}selected{% endif %}>camión</option>
+                                                                <option value="embarcación" {% if vehicle.type == 'embarcación' %}selected{% endif %}>embarcación</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="lat{{ vehicle.id }}" class="form-label">Latitud</label>
+                                                            <input type="number" step="any" class="form-control" id="lat{{ vehicle.id }}" name="lat" value="{{ vehicle.lat }}" required>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="lng{{ vehicle.id }}" class="form-label">Longitud</label>
+                                                            <input type="number" step="any" class="form-control" id="lng{{ vehicle.id }}" name="lng" value="{{ vehicle.lng }}" required>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="status{{ vehicle.id }}" class="form-label">Estado</label>
+                                                            <select class="form-select" id="status{{ vehicle.id }}" name="status" required>
+                                                                <option value="active" {% if vehicle.status == 'active' %}selected{% endif %}>Activo</option>
+                                                                <option value="off" {% if vehicle.status == 'off' %}selected{% endif %}>Apagado</option>
+                                                            </select>
+                                                        </div>
+                                                        <button type="submit" class="btn btn-primary transition shadow-sm">
+                                                            <i class="bi bi-check-circle me-2"></i>Guardar
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+function filterUsers() {
+    const input = document.getElementById('userSearch').value.toLowerCase();
+    const table = document.getElementById('usersTable');
+    const rows = table.getElementsByTagName('tr');
+
+    for (let i = 1; i < rows.length; i++) { // Start from 1 to skip header
+        const username = rows[i].cells[0].textContent.toLowerCase();
+        const keyword = rows[i].cells[2].textContent.toLowerCase();
+        if (username.includes(input) || keyword.includes(input)) {
+            rows[i].style.display = '';
+        } else {
+            rows[i].style.display = 'none';
+        }
+    }
+}
+
+function filterVehicles() {
+    const input = document.getElementById('vehicleSearch').value.toLowerCase();
+    const table = document.getElementById('vehiclesTable');
+    const rows = table.getElementsByTagName('tr');
+
+    for (let i = 1; i < rows.length; i++) { // Start from 1 to skip header
+        const name = rows[i].cells[0].textContent.toLowerCase();
+        const patente = rows[i].cells[1].textContent.toLowerCase();
+        const deviceId = rows[i].cells[2].textContent.toLowerCase();
+        if (name.includes(input) || patente.includes(input) || deviceId.includes(input)) {
+            rows[i].style.display = '';
+        } else {
+            rows[i].style.display = 'none';
+        }
+    }
+}
+</script>
+{% endblock %}
+
+
