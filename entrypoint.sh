@@ -5,7 +5,7 @@ python manage.py collectstatic --noinput
 python manage.py migrate --noinput
 
 # Ensure default admin user exists
-python - << 'PY'
+python - <<'PY'
 import os
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'gps_site.settings')
 import django
@@ -27,4 +27,4 @@ except Exception as e:
     print(f"[init] Skipped creating default admin user due to error: {e}")
 PY
 
-exec daphne -b 0.0.0.0 -p 8000 gps_site.asgi:application
+exec daphne -b 0.0.0.0 -p 8001 gps_site.asgi:application
