@@ -4,8 +4,43 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'replace-me-in-prod')
+
+
+def _split_csv(value: str):
+    return [item.strip() for item in value.split(',') if item.strip()]
+
 DEBUG = os.getenv('DEBUG', '1') == '1'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+DEFAULT_ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'latitudarg.com',
+    'www.latitudarg.com',
+    'latitudarg.com.ar',
+    'www.latitudarg.com.ar',
+]
+
+_env_allowed_hosts = os.getenv('ALLOWED_HOSTS')
+allowed_hosts_source = DEFAULT_ALLOWED_HOSTS.copy()
+if _env_allowed_hosts:
+    allowed_hosts_source += _split_csv(_env_allowed_hosts)
+ALLOWED_HOSTS = list(dict.fromkeys(allowed_hosts_source))
+
+DEFAULT_CSRF_TRUSTED_ORIGINS = [
+    f'{scheme}://{domain}'
+    for domain in [
+        'latitudarg.com',
+        'www.latitudarg.com',
+        'latitudarg.com.ar',
+        'www.latitudarg.com.ar',
+    ]
+    for scheme in ('https', 'http')
+]
+
+_env_csrf_trusted = os.getenv('CSRF_TRUSTED_ORIGINS')
+csrf_trusted_source = DEFAULT_CSRF_TRUSTED_ORIGINS.copy()
+if _env_csrf_trusted:
+    csrf_trusted_source += _split_csv(_env_csrf_trusted)
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(csrf_trusted_source))
 
 INSTALLED_APPS = [
     'django.contrib.admin',
