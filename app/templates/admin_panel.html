@@ -183,6 +183,12 @@
                                         <input type="text" class="form-control" name="device_id" placeholder="ID del Dispositivo (UUID o MAC)" required>
                                     </div>
                                 </div>
+                                <div class="col-md-6 mb-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                        <input type="text" class="form-control" name="device_phone" placeholder="Telefono del dispositivo">
+                                    </div>
+                                </div>
                             </div>
                             <button type="submit" name="add_vehicle" class="btn btn-primary transition shadow-sm">
                                 <i class="bi bi-plus-circle me-2"></i>Agregar
@@ -200,6 +206,7 @@
                                         <th>Nombre</th>
                                         <th>Patente</th>
                                         <th>ID Dispositivo</th>
+                                        <th>Telefono GPS</th>
                                         <th>Tipo</th>
                                         <th>Usuario</th>
                                         <th>Estado</th>
@@ -212,6 +219,7 @@
                                         <td>{{ vehicle.name }}</td>
                                         <td>{{ vehicle.patente }}</td>
                                         <td>{{ vehicle.device_id or 'N/A' }}</td>
+                                        <td>{{ vehicle.device_phone or 'N/A' }}</td>
                                         <td>{{ vehicle.type }}</td>
                                         <td>{{ vehicle.user.username if vehicle.user else 'Desconocido' }}</td>
                                         <td>
@@ -265,6 +273,10 @@
                                                             <input type="text" class="form-control" id="device_id{{ vehicle.id }}" name="device_id" value="{{ vehicle.device_id or '' }}" placeholder="UUID o MAC">
                                                         </div>
                                                         <div class="mb-3">
+                                                            <label for="device_phone{{ vehicle.id }}" class="form-label">Telefono del dispositivo</label>
+                                                            <input type="text" class="form-control" id="device_phone{{ vehicle.id }}" name="device_phone" value="{{ vehicle.device_phone or '' }}" placeholder="Telefono de la linea GPS">
+                                                        </div>
+                                                        <div class="mb-3">
                                                             <label for="type{{ vehicle.id }}" class="form-label">Tipo</label>
                                                             <select class="form-select" id="type{{ vehicle.id }}" name="vehicle_type" required>
                                                                 <option value="moto" {% if vehicle.type == 'moto' %}selected{% endif %}>Moto</option>
@@ -303,6 +315,73 @@
                     </div>
                 </div>
             </div>
+            <!-- Contact Section -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="contactsHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#contactsCollapse" aria-expanded="false" aria-controls="contactsCollapse">
+                        <i class="bi bi-inbox me-2"></i>Consultas de contacto
+                    </button>
+                </h2>
+                <div id="contactsCollapse" class="accordion-collapse collapse" aria-labelledby="contactsHeading" data-bs-parent="#adminAccordion">
+                    <div class="accordion-body">
+                        {% if contacts %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-secondary">
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Nombre</th>
+                                        <th>Correo</th>
+                                        <th>Telefono</th>
+                                        <th>Empresa</th>
+                                        <th>Mensaje</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for contact in contacts %}
+                                    <tr>
+                                        <td>{{ contact.created_at.strftime('%d/%m/%Y %H:%M') if contact.created_at else 'N/A' }}</td>
+                                        <td>{{ contact.name }}</td>
+                                        <td><a href="mailto:{{ contact.email }}">{{ contact.email }}</a></td>
+                                        <td>{{ contact.phone or 'N/A' }}</td>
+                                        <td>{{ contact.company or 'N/A' }}</td>
+                                        <td class="small">{{ contact.message }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if contact.handled %}success{% else %}warning text-dark{% endif %}">
+                                                {{ 'Atendida' if contact.handled else 'Pendiente' }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <form method="POST" class="d-inline">
+                                                    {{ csrf_field() }}
+                                                    <input type="hidden" name="contact_id" value="{{ contact.id }}">
+                                                    <button type="submit" name="toggle_contact" class="btn btn-sm btn-outline-primary transition">
+                                                        {{ 'Marcar pendiente' if contact.handled else 'Marcar atendida' }}
+                                                    </button>
+                                                </form>
+                                                <form method="POST" class="d-inline" onsubmit="return confirm('Eliminar esta consulta?');">
+                                                    {{ csrf_field() }}
+                                                    <input type="hidden" name="contact_id" value="{{ contact.id }}">
+                                                    <button type="submit" name="delete_contact" class="btn btn-sm btn-outline-danger transition">
+                                                        Eliminar
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted mb-0">Aun no recibimos consultas.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -332,7 +411,8 @@ function filterVehicles() {
         const name = rows[i].cells[0].textContent.toLowerCase();
         const patente = rows[i].cells[1].textContent.toLowerCase();
         const deviceId = rows[i].cells[2].textContent.toLowerCase();
-        if (name.includes(input) || patente.includes(input) || deviceId.includes(input)) {
+        const devicePhone = rows[i].cells[3].textContent.toLowerCase();
+        if (name.includes(input) || patente.includes(input) || deviceId.includes(input) || devicePhone.includes(input)) {
             rows[i].style.display = '';
         } else {
             rows[i].style.display = 'none';
@@ -341,5 +421,6 @@ function filterVehicles() {
 }
 </script>
 {% endblock %}
+
 
 

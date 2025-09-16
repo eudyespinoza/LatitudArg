@@ -10,7 +10,7 @@
         <h1 class="display-5 fw-bold mb-3">Tu flota bajo control, con dispositivo propio</h1>
         <p class="lead text-muted">Fabricamos nuestro dispositivo GPS y brindamos soporte integral del servicio y del equipo. Monitorea vehículos y activos en tiempo real con precisión de mapa, alertas inteligentes y reportes claros que impulsan decisiones más rápidas y seguras.</p>
         <div class="d-flex gap-2 mt-3">
-          <a href="{{ url_for('main.register') }}" class="btn btn-primary btn-lg"><i class="bi bi-person-plus me-2"></i>Probar gratis</a>
+          <a href="#contact" class="btn btn-primary btn-lg"><i class="bi bi-person-plus me-2"></i>Consultanos</a>
           <a href="{{ url_for('main.login') }}" class="btn btn-outline-primary btn-lg"><i class="bi bi-box-arrow-in-right me-2"></i>Iniciar sesión</a>
         </div>
         <div class="d-flex gap-4 mt-4 text-muted small flex-wrap">
@@ -80,21 +80,21 @@
         <div class="p-4 border rounded h-100 text-center">
           <h5>1 Vehículo</h5><div class="display-6 fw-bold mb-2">$35.000<span class="fs-6 text-muted">/mes</span></div>
           <ul class="list-unstyled text-muted small mb-3"><li>Servicio por 1 vehículo</li><li>Mapa en vivo + historial</li><li>Soporte del servicio y dispositivo</li></ul>
-          <a href="{{ url_for('main.register') }}" class="btn btn-outline-primary">Empezar</a>
+          <a href="#contact" class="btn btn-outline-primary">Solicitar contacto</a>
         </div>
       </div>
       <div class="col-md-4">
         <div class="p-4 border rounded h-100 text-center">
           <h5>PyME (5–9 vehículos)</h5><div class="display-6 fw-bold mb-2">$30.000<span class="fs-6 text-muted">/vehículo/mes</span></div>
           <ul class="list-unstyled text-muted small mb-3"><li>Más de 4 y menos de 10</li><li>Mapa en vivo + historial</li><li>Soporte del servicio y dispositivo</li></ul>
-          <a href="{{ url_for('main.register') }}" class="btn btn-primary">Empezar</a>
+          <a href="#contact" class="btn btn-primary">Solicitar contacto</a>
         </div>
       </div>
       <div class="col-md-4">
         <div class="p-4 border rounded h-100 text-center">
           <h5>Flotas</h5><div class="display-6 fw-bold mb-2">A medida</div>
           <ul class="list-unstyled text-muted small mb-3"><li>10+ vehículos</li><li>Precios preferenciales</li><li>Soporte dedicado</li></ul>
-          <a href="mailto:contacto@latitudarg.com" class="btn btn-outline-primary">Contactar</a>
+          <a href="mailto:{{ contact_email|default('contacto@latitudarg.com', true) }}" class="btn btn-outline-primary">Contactar</a>
         </div>
       </div>
     </div>
@@ -141,7 +141,7 @@
           <li class="mb-2"><strong>Activa tu cuenta</strong> y registra la patente o identificador.</li>
           <li class="mb-2"><strong>Monitorea en vivo</strong> desde cualquier dispositivo y comparte reportes.</li>
         </ol>
-        <a href="{{ url_for('main.register') }}" class="btn btn-primary mt-2"><i class="bi bi-person-plus me-1"></i>Crear cuenta</a>
+        <a href="#contact" class="btn btn-primary mt-2"><i class="bi bi-person-plus me-1"></i>Consultanos</a>
       </div>
       <div class="col-lg-6">
         <div class="p-4 border rounded bg-light shadow-sm">
@@ -174,12 +174,66 @@
   </div>
 </section>
 
+<!-- Contacto -->
+<section id="contact" class="py-5 bg-body-tertiary">
+  <div class="container">
+    <div class="row g-4 align-items-start">
+      <div class="col-lg-5">
+        <h2 class="fw-semibold">Consultanos</h2>
+        <p class="text-muted">Configura tu servicio con nuestro equipo. Enviamos la informacion en menos de un dia habil.</p>
+        <ul class="list-unstyled text-muted small mb-0">
+          <li class="mb-2"><i class="bi bi-check2-circle text-primary me-2"></i>Planes y dispositivos a medida.</li>
+          <li class="mb-2"><i class="bi bi-check2-circle text-primary me-2"></i>Instalacion y soporte tecnico incluido.</li>
+          <li class="mb-0"><i class="bi bi-check2-circle text-primary me-2"></i>Respuestas rapidas por mail o telefono.</li>
+        </ul>
+        <div class="mt-3 small">
+          <span class="text-muted">Preferis escribirnos directo?</span>
+          <a class="ms-1" href="mailto:{{ contact_email|default('contacto@latitudarg.com', true) }}">{{ contact_email|default('contacto@latitudarg.com', true) }}</a>
+        </div>
+      </div>
+      <div class="col-lg-7">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-4">
+            <form method="POST" action="{{ url_for('main.contact') }}" class="row g-3">
+              {{ csrf_field() }}
+              <div class="col-md-6">
+                <label class="form-label" for="contact-name">Nombre y apellido</label>
+                <input type="text" class="form-control" id="contact-name" name="name" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="contact-company">Empresa</label>
+                <input type="text" class="form-control" id="contact-company" name="company" placeholder="Opcional">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="contact-email">Correo</label>
+                <input type="email" class="form-control" id="contact-email" name="email" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="contact-phone">Telefono</label>
+                <input type="text" class="form-control" id="contact-phone" name="phone" placeholder="Ej. +54 9 11 5555-5555">
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="contact-message">Mensaje</label>
+                <textarea class="form-control" id="contact-message" name="message" rows="4" required placeholder="Contanos cuantas unidades queres monitorear y donde operan"></textarea>
+              </div>
+              <div class="col-12 d-flex justify-content-between align-items-center">
+                <small class="text-muted">Te respondemos dentro de las 24 horas habiles.</small>
+                <button type="submit" class="btn btn-primary">Enviar consulta</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- CTA final -->
 <section class="py-5 bg-primary text-white text-center rounded">
   <div class="container">
-    <h3 class="fw-semibold mb-2">Empieza hoy y toma el control</h3>
-    <p class="text-white-50 mb-4">Regístrate en minutos. Sin costos ocultos. Soporte humano.</p>
-    <a href="{{ url_for('main.register') }}" class="btn btn-light btn-lg me-2"><i class="bi bi-person-plus me-1"></i>Crear cuenta</a>
+    <h3 class="fw-semibold mb-2">Listos para monitorear tu flota?</h3>
+    <p class="text-white-50 mb-4">Hablemos y configuramos todo por vos.</p>
+    <a href="#contact" class="btn btn-light btn-lg me-2"><i class="bi bi-chat-dots me-1"></i>Consultar ahora</a>
     <a href="{{ url_for('main.login') }}" class="btn btn-outline-light btn-lg"><i class="bi bi-box-arrow-in-right me-1"></i>Iniciar sesión</a>
   </div>
 </section>

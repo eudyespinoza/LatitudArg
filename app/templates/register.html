@@ -2,30 +2,12 @@
 {% block content %}
 <div class="card mb-4 shadow-sm">
     <div class="card-header">
-        <h2 class="mb-0">Registrarse</h2>
+        <h2 class="mb-0">Alta de clientes</h2>
     </div>
     <div class="card-body">
-        <form method="POST" action="{{ url_for('main.register') }}">
-            {{ csrf_field() }}
-            <div class="mb-3">
-                <label for="username" class="form-label">Usuario</label>
-                <input type="text" class="form-control" id="username" name="username" required>
-            </div>
-            <div class="mb-3">
-                <label for="email" class="form-label">Correo Electrónico</label>
-                <input type="email" class="form-control" id="email" name="email" required>
-            </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">Contraseña</label>
-                <input type="password" class="form-control" id="password" name="password" required>
-            </div>
-            <div class="mb-3">
-                <label for="keyword" class="form-label">Palabra Clave (opcional)</label>
-                <input type="text" class="form-control" id="keyword" name="keyword">
-            </div>
-            <button type="submit" class="btn btn-primary transition">Registrarse</button>
-        </form>
-        <p class="mt-3 text-muted">¿Ya tienes cuenta? <a href="{{ url_for('main.login') }}" class="transition">Inicia Sesión</a></p>
+        <p class="mb-3">Las cuentas de LatitudArg las configuramos nosotros para que recibas el servicio listo para usar. Completa el formulario de contacto y coordinamos contigo la activación.</p>
+        <a href="{{ url_for('main.index') }}?landing=1#contact" class="btn btn-primary">Ir al formulario de contacto</a>
+        <p class="mt-3 text-muted mb-0">¿Ya sos cliente? <a href="{{ url_for('main.login') }}" class="transition">Inicia sesión</a>.</p>
     </div>
 </div>
 {% endblock %}

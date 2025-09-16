@@ -21,6 +21,7 @@
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item"><strong>Patente:</strong> {{ vehicle.patente }}</li>
                             <li class="list-group-item"><strong>ID Dispositivo:</strong> {{ vehicle.device_id or 'N/A' }}</li>
+                            <li class="list-group-item"><strong>Telefono GPS:</strong> {{ vehicle.device_phone or 'N/A' }}</li>
                             <li class="list-group-item"><strong>Latitud:</strong>
                                 {% if vehicle.lat|float == 0.0 and vehicle.lng|float == 0.0 %}
                                     <span id="lat">Señal GPS perdida</span>

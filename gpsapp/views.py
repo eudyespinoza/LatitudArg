@@ -1,10 +1,13 @@
 import json
+import logging
 from datetime import datetime
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password
+from django.core.mail import send_mail
+from django.utils import timezone
 from django.http import JsonResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import redirect, render
@@ -12,18 +15,19 @@ from django.urls import reverse
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
-from .models import User, Vehicle, LocationHistory
+from .models import User, Vehicle, LocationHistory, ContactRequest
 from .mongo import get_db as get_mongo
 
 
-def index(request):
-    # Permitir forzar landing aunque esté autenticado (enlace del logo)
-    if request.GET.get('landing'):
-        return render(request, 'landing.html')
-    if request.user.is_authenticated:
-        return redirect('dashboard')
-    return render(request, 'landing.html')
+logger = logging.getLogger(__name__)
 
+def index(request):
+    if request.user.is_authenticated and not request.GET.get('landing'):
+        return redirect('dashboard')
+    context = {
+        'contact_email': getattr(settings, 'CONTACT_EMAIL', 'contacto@latitudarg.com'),
+    }
+    return render(request, 'landing.html', context)
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -39,22 +43,52 @@ def login_view(request):
     return render(request, 'login.html')
 
 
-def register_view(request):
-    if request.user.is_authenticated:
-        return redirect('dashboard')
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-        keyword = request.POST.get('keyword', '')
-        if User.objects.filter(username=username).exists():
-            messages.error(request, 'El usuario ya existe.')
-            return render(request, 'register.html')
-        user = User.objects.create_user(username=username, email=email, password=password, role='user', keyword=keyword)
-        messages.success(request, 'Registro exitoso. Inicia sesión.')
-        return redirect('login')
-    return render(request, 'register.html')
+def contact_view(request):
+    target = f"{reverse('index')}?landing=1#contact"
+    if request.method != 'POST':
+        return redirect(target)
 
+    name = (request.POST.get('name') or '').strip()
+    email = (request.POST.get('email') or '').strip()
+    phone = (request.POST.get('phone') or '').strip()
+    company = (request.POST.get('company') or '').strip()
+    message_text = (request.POST.get('message') or '').strip()
+
+    if not name or not email or not message_text:
+        messages.error(request, 'Por favor completa nombre, correo y mensaje para que podamos contactarte.')
+        return redirect(target)
+
+    contact = ContactRequest.objects.create(
+        name=name,
+        email=email,
+        phone=phone,
+        company=company,
+        message=message_text,
+    )
+
+    contact_email = getattr(settings, 'CONTACT_EMAIL', 'contacto@latitudarg.com')
+    if contact_email:
+        subject = f"Nueva consulta de {name}"
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', contact_email)
+        body_lines = [
+            f"Nombre: {name}",
+            f"Email: {email}",
+            f"Telefono: {phone or 'No indicado'}",
+            f"Empresa: {company or 'No indicada'}",
+            '',
+            'Mensaje:',
+            message_text,
+            '',
+            f"ID interno: {contact.id}",
+        ]
+        body = "\n".join(body_lines)
+        try:
+            send_mail(subject, body, from_email, [contact_email])
+        except Exception as exc:
+            logger.warning('No se pudo enviar la notificacion de contacto: %s', exc)
+
+    messages.success(request, 'Gracias por tu consulta. Nuestro equipo te contactara a la brevedad.')
+    return redirect(target)
 
 @login_required
 def dashboard(request):
@@ -84,6 +118,7 @@ def admin_panel(request):
             vehicle_type = request.POST.get('vehicle_type')
             patente = request.POST.get('patente')
             device_id = request.POST.get('device_id')
+            device_phone = (request.POST.get('device_phone') or '').strip()
             if not all([user_id, vehicle_name, vehicle_type, patente, device_id]):
                 messages.error(request, 'Todos los campos son obligatorios.')
                 return redirect('admin_panel')
@@ -92,13 +127,29 @@ def admin_panel(request):
                 return redirect('admin_panel')
             Vehicle.objects.create(
                 user_id=user_id, name=vehicle_name, type=vehicle_type,
-                patente=patente, device_id=device_id, status='active',
+                patente=patente, device_id=device_id, device_phone=device_phone, status='active',
                 lat=-34.6037, lng=-58.3816
             )
             messages.success(request, 'Vehículo agregado.')
+        elif 'toggle_contact' in request.POST:
+            contact_id = request.POST.get('contact_id')
+            try:
+                cr = ContactRequest.objects.get(id=contact_id)
+                cr.handled = not cr.handled
+                cr.handled_at = timezone.now() if cr.handled else None
+                cr.save(update_fields=['handled', 'handled_at'])
+                estado = 'marcada como atendida' if cr.handled else 'marcada como pendiente'
+                messages.success(request, f'Consulta {estado}.')
+            except ContactRequest.DoesNotExist:
+                messages.error(request, 'La consulta indicada no existe.')
+        elif 'delete_contact' in request.POST:
+            contact_id = request.POST.get('contact_id')
+            ContactRequest.objects.filter(id=contact_id).delete()
+            messages.success(request, 'Consulta eliminada.')
     users = User.objects.all()
+    contacts = ContactRequest.objects.all()
     vehicles = Vehicle.objects.all()
-    return render(request, 'admin_panel.html', {'users': users, 'vehicles': vehicles})
+    return render(request, 'admin_panel.html', {'users': users, 'vehicles': vehicles, 'contacts': contacts})
 
 
 @login_required
@@ -195,6 +246,7 @@ def update_vehicle(request):
     vehicle_type = request.POST.get('vehicle_type')
     patente = request.POST.get('patente')
     device_id = request.POST.get('device_id')
+    device_phone = (request.POST.get('device_phone') or '').strip()
     lat = request.POST.get('lat')
     lng = request.POST.get('lng')
     status = request.POST.get('status')
@@ -205,6 +257,7 @@ def update_vehicle(request):
         v.type = vehicle_type
         v.patente = patente
         v.device_id = device_id or None
+        v.device_phone = device_phone
         v.lat = float(lat)
         v.lng = float(lng)
         v.status = status

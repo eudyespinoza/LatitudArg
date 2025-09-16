@@ -17,6 +17,7 @@ def environment(**options):
             'main.index': 'index',
             'main.login': 'login',
             'main.register': 'register',
+            'main.contact': 'contact',
             'main.dashboard': 'dashboard',
             'main.admin_panel': 'admin_panel',
             'main.profile': 'profile',

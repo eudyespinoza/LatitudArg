@@ -42,6 +42,8 @@ if _env_csrf_trusted:
     csrf_trusted_source += _split_csv(_env_csrf_trusted)
 CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(csrf_trusted_source))
 
+CONTACT_EMAIL = os.getenv('CONTACT_EMAIL', 'contacto@latitudarg.com')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',

@@ -78,6 +78,7 @@ class Vehicle(models.Model):
     lng = models.FloatField(default=-58.3816)
     status = models.CharField(max_length=32, default='active')
     device_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    device_phone = models.CharField(max_length=32, blank=True, default='')
     signal_quality = models.IntegerField(default=0)
     vehicle_on = models.BooleanField(default=False)
     shutdown = models.BooleanField(default=False)
@@ -104,3 +105,22 @@ class LocationHistory(models.Model):
 
     class Meta:
         db_table = 'location_history'
+
+
+class ContactRequest(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=255)
+    email = models.EmailField()
+    phone = models.CharField(max_length=32, blank=True, default='')
+    company = models.CharField(max_length=255, blank=True, default='')
+    message = models.TextField()
+    handled = models.BooleanField(default=False)
+    handled_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'contact_requests'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} <{self.email}>"
