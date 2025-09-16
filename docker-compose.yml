@@ -1,8 +1,8 @@
 services:
   web:
     build: .
-    ports:
-      - "80:8001"
+    expose:
+      - "8001"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys;\nimport socket; socket.setdefaulttimeout(2);\n\ntry:\n  urllib.request.urlopen('http://127.0.0.1:8001/login');\n  sys.exit(0)\nexcept Exception as e:\n  sys.exit(1)\n\" "]
       interval: 10s
@@ -15,7 +15,7 @@ services:
       - SQLITE_DB_PATH=/data/gps_monitoring.db
       - REDIS_URL=redis://redis:6379/1
       - MONGO_URI=mongodb://mongodb:27017/gps_monitoring
-      - ALLOWED_HOSTS=localhost,127.0.0.1
+      - ALLOWED_HOSTS=localhost,127.0.0.1,latitudarg.com,latitudarg.com.ar,www.latitudarg.com,www.latitudarg.com.ar
     depends_on:
       redis:
         condition: service_healthy
@@ -43,6 +43,20 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+  nginx:
+    image: nginx:1.25-alpine
+    depends_on:
+      web:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - static-data:/app/staticfiles:ro
+      - /etc/ssl/latitudarg:/etc/ssl/latitudarg:ro
+
+
 volumes:
   db-data:
   static-data:
