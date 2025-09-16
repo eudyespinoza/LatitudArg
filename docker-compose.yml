@@ -2,7 +2,7 @@ services:
   web:
     build: .
     ports:
-      - "8000:8001"
+      - "80:8001"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys;\nimport socket; socket.setdefaulttimeout(2);\n\ntry:\n  urllib.request.urlopen('http://127.0.0.1:8001/login');\n  sys.exit(0)\nexcept Exception as e:\n  sys.exit(1)\n\" "]
       interval: 10s
