@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="28" viewBox="0 0 280 56" role="img" aria-label="LatitudArg">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
+    </linearGradient>
+  </defs>
+  <rect rx="10" ry="10" width="56" height="56" fill="url(#g)"/>
+  <g fill="#fff" transform="translate(8,8)">
+    <path d="M20 0a20 20 0 1 0 0 40a20 20 0 1 0 0-40zm0 6a14 14 0 1 1 0 28a14 14 0 1 1 0-28z" opacity=".25"/>
+    <path d="M20 4a16 16 0 1 0 0 32a16 16 0 1 0 0-32zm0 10a6 6 0 1 1 0 12a6 6 0 1 1 0-12z"/>
+  </g>
+  <text x="72" y="38" font-family="Poppins, Arial, sans-serif" font-weight="700" font-size="28" fill="#0f172a">Latitud</text>
+  <text x="172" y="38" font-family="Poppins, Arial, sans-serif" font-weight="700" font-size="28" fill="#0ea5e9">Arg</text>
+</svg>

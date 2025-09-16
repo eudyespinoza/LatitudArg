@@ -1,0 +1,301 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+<div class="card mb-4 shadow-sm">
+    <div class="card-header">
+        <h2 class="mb-0">Dashboard</h2>
+    </div>
+    <div class="card-body">
+        <!-- Quick metrics & filters -->
+        {% set total = vehicles|length %}
+        {% set encendidos = vehicles|selectattr('vehicle_on')|list|length %}
+        {% set apagados = total - encendidos %}
+        {% set audio_on = vehicles|selectattr('transmit_audio')|list|length %}
+        <div class="mb-3">
+          <div class="stats-grid">
+            <div class="stat-card"><div class="icon bg-primary-subtle text-primary"><i class="bi bi-truck"></i></div><div><div class="value" id="kpi-total">{{ total }}</div><div class="label">Vehículos</div></div></div>
+            <div class="stat-card"><div class="icon bg-success-subtle text-success"><i class="bi bi-lightning-charge"></i></div><div><div class="value" id="kpi-encendidos">{{ encendidos }}</div><div class="label">Encendidos</div></div></div>
+            <div class="stat-card"><div class="icon bg-danger-subtle text-danger"><i class="bi bi-power"></i></div><div><div class="value" id="kpi-apagados">{{ apagados }}</div><div class="label">Apagados</div></div></div>
+            <div class="stat-card"><div class="icon bg-info-subtle text-info"><i class="bi bi-soundwave"></i></div><div><div class="value" id="kpi-audio">{{ audio_on }}</div><div class="label">Audio activo</div></div></div>
+          </div>
+        </div>
+        <div class="toolbar mb-3">
+          <input id="searchVehicles" type="text" class="form-control" placeholder="Buscar por nombre o patente..." />
+          <select id="filterStatus" class="form-select"><option value="">Todos los estados</option><option value="on">Encendido</option><option value="off">Apagado</option></select>
+          <div class="ms-auto small text-muted">Actualización en vivo</div>
+        </div>
+    <h3 class="h5 mb-3">Tus Vehículos</h3>
+        {% if vehicles %}
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="vehicles-list">
+                {% for vehicle in vehicles %}
+                    <div class="col">
+                        <div class="card vehicle-card h-100" data-vehicle-id="{{ vehicle.id }}" data-search="{{ (vehicle.name ~ ' ' ~ vehicle.patente)|lower }}" data-status="{{ 'on' if vehicle.vehicle_on else 'off' }}" data-audio="{{ 'on' if vehicle.transmit_audio else 'off' }}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start"><div><h4 class="card-title mb-1">{{ vehicle.name }}</h4><div class="meta">Patente {{ vehicle.patente }} • Tipo {{ vehicle.type }}</div></div><span class="badge bg-{% if vehicle.vehicle_on %}success{% else %}danger{% endif %}" id="vehicle-state-{{ vehicle.id }}">{{ 'Encendido' if vehicle.vehicle_on else 'Apagado' }}</span></div><hr class="my-3">
+                                <ul class="list-group list-group-flush">
+                                    
+                                    
+                                    <li class="list-group-item"><strong>Latitud:</strong>
+                                        {% if vehicle.lat|float == 0.0 and vehicle.lng|float == 0.0 %}
+                                            <span class="lat" id="lat-{{ vehicle.id }}">Señal GPS perdida</span>
+                                        {% else %}
+                                            <span class="lat" id="lat-{{ vehicle.id }}">{{ vehicle.lat|default(-34.6037, true)|float|round(6) }}</span>
+                                        {% endif %}
+                                    </li>
+                                    <li class="list-group-item"><strong>Longitud:</strong>
+                                        {% if vehicle.lat|float == 0.0 and vehicle.lng|float == 0.0 %}
+                                            <span class="lng" id="lng-{{ vehicle.id }}">Señal GPS perdida</span>
+                                        {% else %}
+                                            <span class="lng" id="lng-{{ vehicle.id }}">{{ vehicle.lng|default(-58.3816, true)|float|round(6) }}</span>
+                                        {% endif %}
+                                    </li>
+                                    <li class="list-group-item"><strong>Velocidad:</strong> <span class="speed" id="speed-{{ vehicle.id }}">{{ vehicle.speed|default(0.0)|float|round(2) }} km/h</span></li>
+                                    <li class="list-group-item"><strong>Señal:</strong>
+                                        {% set signal = (vehicle.signal_quality or 0)|int %}
+                                        <span class="signal signal-bars {% if signal < 13 %}low{% elif signal < 25 %}medium{% else %}high{% endif %}" id="signal-quality-{{ vehicle.id }}">
+                                            {% if signal <= 6 %}
+                                                <i class="bi bi-reception-0"></i>
+                                            {% elif signal <= 12 %}
+                                                <i class="bi bi-reception-1"></i>
+                                            {% elif signal <= 18 %}
+                                                <i class="bi bi-reception-2"></i>
+                                            {% elif signal <= 24 %}
+                                                <i class="bi bi-reception-3"></i>
+                                            {% else %}
+                                                <i class="bi bi-reception-4"></i>
+                                            {% endif %}
+                                        </span>
+                                    </li>
+                                    <li class="list-group-item"><strong>Estado:</strong> <span class="vehicle-on badge bg-{% if vehicle.vehicle_on %}success{% else %}danger{% endif %}" id="vehicle-state-{{ vehicle.id }}">{{ 'Encendido' if vehicle.vehicle_on else 'Apagado' }}</span></li>
+                                    <li class="list-group-item"><strong>Comando:</strong> <span class="control-state badge bg-{% if not vehicle.shutdown %}success{% else %}danger{% endif %}" id="control-state-{{ vehicle.id }}">{{ 'Encendido' if not vehicle.shutdown else 'Apagado' }}</span></li>
+                                    <li class="list-group-item"><strong>Audio:</strong> <span class="audio-state badge bg-{% if vehicle.transmit_audio %}success{% else %}danger{% endif %}" id="audio-state-{{ vehicle.id }}">{{ 'Activada' if vehicle.transmit_audio else 'Desactivada' }}</span></li>
+                                    <li class="list-group-item"><strong>Última Actualización:</strong> <span class="last-updated" id="last-updated-{{ vehicle.id }}">{{ vehicle.last_updated|default('N/A', true) }}</span></li>
+                                </ul>
+                                {% if vehicle.id %}
+                                    <div class="mt-3 d-flex gap-2">
+                                        <a href="{{ url_for('main.vehicle_map', vehicle_id=vehicle.id) }}" class="btn btn-outline-primary btn-sm transition">
+                                            <i class="bi bi-map me-1"></i> Ver Mapa
+                                        </a> <a href="{{ url_for('main.vehicle_history', vehicle_id=vehicle.id) }}" class="btn btn-outline-secondary btn-sm transition"><i class="bi bi-clock-history me-1"></i>Historial</a>
+                                        <button onclick="toggleShutdown('{{ vehicle.id }}')" class="btn btn-outline-{% if not vehicle.shutdown %}success{% else %}danger{% endif %} btn-sm transition shutdown-toggle" id="shutdownToggle-{{ vehicle.id }}" title="{{ 'Apagar Vehículo' if not vehicle.shutdown else 'Encender Vehículo' }}">
+                                            <i class="bi bi-power {% if not vehicle.shutdown %}text-success{% else %}text-danger{% endif %} me-1"></i> {{ 'Apagar' if not vehicle.shutdown else 'Encender' }}
+                                        </button>
+                                        <button onclick="toggleAudio('{{ vehicle.id }}')" class="btn btn-outline-{% if vehicle.transmit_audio %}success{% else %}danger{% endif %} btn-sm transition audio-toggle" id="audioToggle-{{ vehicle.id }}" title="{{ 'Desactivar Audio' if vehicle.transmit_audio else 'Activar Audio' }}">
+                                            <i class="bi {% if vehicle.transmit_audio %}bi-volume-mute text-danger{% else %}bi-volume-up text-success{% endif %} me-1"></i> {{ 'Desactivar' if vehicle.transmit_audio else 'Activar' }} Audio
+                                        </button>
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted mt-3">ID no disponible</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted">No tienes Vehículos registrados.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="modal fade" id="shutdownModal" tabindex="-1" aria-labelledby="shutdownModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-light border-0">
+                <h5 class="modal-title text-primary" id="shutdownModalLabel"><i class="bi bi-exclamation-circle me-2"></i>Confirmar Acción</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted"><i class="bi bi-exclamation-circle me-2 text-warning"></i>¿Estás seguro de que deseas <span id="shutdownActionText"></span> este Vehículo?</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary btn-sm transition shadow-sm" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary btn-sm transition shadow-sm" id="confirmShutdown">
+                    <i class="bi bi-power me-2"></i>Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# shutdown.js no se usa en dashboard: eliminado #}
+<script type="module">
+import { connectVehicle } from "{{ url_for('static', filename='js/realtime.js') }}";
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.vehicle-card').forEach(card => {
+    const vehicleId = card.getAttribute('data-vehicle-id');
+    if (!vehicleId) return;
+    connectVehicle(vehicleId, data => { const card = document.querySelector(`.vehicle-card[data-vehicle-id="${vehicleId}"]`); if(card){ card.setAttribute("data-status", data.vehicle_on?"on":"off"); card.setAttribute("data-audio", data.transmit_audio?"on":"off"); } if(window._updateSummary){ window._updateSummary(); }
+      const latEl = document.getElementById(`lat-${vehicleId}`);
+      const lngEl = document.getElementById(`lng-${vehicleId}`);
+      const speedEl = document.getElementById(`speed-${vehicleId}`);
+      const signalEl = document.getElementById(`signal-quality-${vehicleId}`);
+      const vStateEl = document.getElementById(`vehicle-state-${vehicleId}`);
+      const cStateEl = document.getElementById(`control-state-${vehicleId}`);
+      const aStateEl = document.getElementById(`audio-state-${vehicleId}`);
+      const lastUpdEl = document.getElementById(`last-updated-${vehicleId}`);
+
+      if (latEl && lngEl && !isNaN(parseFloat(data.lat)) && !isNaN(parseFloat(data.lng))) {
+        latEl.textContent = parseFloat(data.lat).toFixed(6);
+        lngEl.textContent = parseFloat(data.lng).toFixed(6);
+      }
+      if (speedEl) speedEl.textContent = `${(data.speed || 0).toFixed(2)} km/h`;
+      if (signalEl) {
+        const s = parseInt(data.signal_quality || 0);
+        signalEl.className = `signal signal-bars ${s < 13 ? 'low' : s < 25 ? 'medium' : 'high'}`;
+        signalEl.innerHTML = (
+          s <= 6 ? '<i class="bi bi-reception-0"></i>' :
+          s <= 12 ? '<i class=\"bi bi-reception-1\"></i>' :
+          s <= 18 ? '<i class=\"bi bi-reception-2\"></i>' :
+          s <= 24 ? '<i class=\"bi bi-reception-3\"></i>' :
+                    '<i class=\"bi bi-reception-4\"></i>'
+        );
+      }
+      if (vStateEl) { vStateEl.className = `badge bg-${data.vehicle_on ? 'success' : 'danger'}`; vStateEl.textContent = data.vehicle_on ? 'Encendido' : 'Apagado'; }
+      if (cStateEl) { cStateEl.className = `badge bg-${data.shutdown ? 'danger' : 'success'}`; cStateEl.textContent = data.shutdown ? 'Apagado' : 'Encendido'; }
+      if (aStateEl) { aStateEl.className = `badge bg-${data.transmit_audio ? 'success' : 'danger'}`; aStateEl.textContent = data.transmit_audio ? 'Activada' : 'Desactivada'; }
+      if (lastUpdEl && data.last_updated) lastUpdEl.textContent = data.last_updated;
+    });
+  });
+});
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Búsqueda y filtros rápidos
+(function(){
+  const q=document.getElementById('searchVehicles');
+  const f=document.getElementById('filterStatus');
+  const list=document.getElementById('vehicles-list');
+  if(!q||!f||!list) return;
+  function apply(){
+    const term=(q.value||'').toLowerCase();
+    const status=f.value;
+    list.querySelectorAll('[data-vehicle-id]').forEach(card=>{
+      const search=(card.getAttribute('data-search')||'').toLowerCase();
+      const matchesTerm=search.includes(term);
+      const matchesStatus=!status || card.getAttribute('data-status')===status;
+      card.parentElement.style.display=(matchesTerm&&matchesStatus)?'':'';
+    })
+  }
+  q.addEventListener('input', apply);
+  f.addEventListener('change', apply);
+})();
+
+// KPIs de resumen en vivo
+(function(){
+  function updateSummary(){
+    const cards = document.querySelectorAll('.vehicle-card');
+    const total = cards.length;
+    let enc=0, aud=0;
+    cards.forEach(card=>{ enc += (card.getAttribute('data-status')==='on')?1:0; aud += (card.getAttribute('data-audio')==='on')?1:0; });
+    const apag = total - enc;
+    const set = (id,val)=>{ const el=document.getElementById(id); if(el) el.textContent = String(val); };
+    set('kpi-total', total); set('kpi-encendidos', enc); set('kpi-apagados', apag); set('kpi-audio', aud);
+  }
+  window._updateSummary = updateSummary;
+  document.addEventListener('DOMContentLoaded', updateSummary);
+})();
+
+// Acciones de tarjeta (shutdown/audio)
+(function(){
+  function notify(message, type){
+    const c=document.getElementById('notification-container');
+    if(!c) return; const n=document.createElement('div');
+    n.className=`alert alert-${type} alert-dismissible fade show modern-alert shadow-sm`;
+    n.innerHTML=`<i class="bi ${type==='danger'?'bi-exclamation-circle':'bi-info-circle'} me-2"></i>${message}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+    c.appendChild(n); setTimeout(()=>{ try{ n.remove(); }catch(_){} }, 5000);
+  }
+
+  function updateShutdownUI(id, shutdown){
+    const toggle = document.getElementById(`shutdownToggle-${id}`);
+    const state = document.getElementById(`control-state-${id}`);
+    if(toggle){
+      toggle.classList.remove(`btn-outline-${shutdown?'success':'danger'}`);
+      toggle.classList.add(`btn-outline-${shutdown?'danger':'success'}`);
+      const icon = toggle.querySelector('i');
+      if(icon){ icon.className = `bi bi-power ${shutdown?'text-danger':'text-success'} me-1`; }
+      toggle.title = shutdown ? 'Encender Vehículo' : 'Apagar Vehículo';
+      toggle.innerHTML = `<i class="bi bi-power ${shutdown?'text-danger':'text-success'} me-1"></i> ${shutdown?'Encender':'Apagar'}`;
+    }
+    if(state){ state.className = `control-state badge bg-${shutdown?'danger':'success'}`; state.textContent = shutdown?'Apagado':'Encendido'; }
+  }
+
+  function updateAudioUI(id, on){
+    const toggle = document.getElementById(`audioToggle-${id}`);
+    const state = document.getElementById(`audio-state-${id}`);
+    if(toggle){
+      toggle.classList.remove(`btn-outline-${on?'danger':'success'}`);
+      toggle.classList.add(`btn-outline-${on?'success':'danger'}`);
+      const icon = toggle.querySelector('i');
+      if(icon){ icon.className = `bi ${on?'bi-volume-mute text-danger':'bi-volume-up text-success'} me-1`; }
+      toggle.title = on ? 'Desactivar Audio' : 'Activar Audio';
+      toggle.innerHTML = `<i class="bi ${on?'bi-volume-mute text-danger':'bi-volume-up text-success'} me-1"></i> ${on?'Desactivar':'Activar'} Audio`;
+    }
+    if(state){ state.className = `audio-state badge bg-${on?'success':'danger'}`; state.textContent = on?'Activada':'Desactivada'; }
+  }
+
+  window.toggleShutdown = function(vehicleId){
+    fetch(`/api/vehicle/${vehicleId}/shutdown`, { method:'POST', headers:{'Content-Type':'application/json'} })
+      .then(r=>r.json()).then(d=>{
+        if(d.status==='success'){
+          updateShutdownUI(vehicleId, !!d.shutdown);
+          notify(`Vehículo ${d.shutdown?'apagado':'encendido'}.`, 'primary');
+        } else { notify(d.message||'Error de comando', 'danger'); }
+      }).catch(()=>notify('Error de red', 'danger'));
+  };
+
+  window.toggleAudio = function(vehicleId){
+    fetch(`/api/vehicle/${vehicleId}/audio`, { method:'POST', headers:{'Content-Type':'application/json'} })
+      .then(r=>r.json()).then(d=>{
+        if(d.status==='success'){
+          updateAudioUI(vehicleId, !!d.transmit_audio);
+          notify(`Transmisión de audio ${d.transmit_audio?'activada':'desactivada'}.`, 'primary');
+        } else { notify(d.message||'Error de comando', 'danger'); }
+      }).catch(()=>notify('Error de red', 'danger'));
+  };
+})();
+</script>
+{% endblock %}
+
+<script>
+  (function(){
+    const q=document.getElementById('searchVehicles');
+    const f=document.getElementById('filterStatus');
+    const list=document.getElementById('vehicles-list');
+    if(!q||!f||!list) return;
+    function apply(){
+      const term=(q.value||'').toLowerCase();
+      const status=f.value;
+      list.querySelectorAll('[data-vehicle-id]').forEach(card=>{
+        const search=(card.getAttribute('data-search')||'').toLowerCase();
+        const matchesTerm=search.includes(term);
+        const matchesStatus=!status || card.getAttribute('data-status')===status;
+        card.parentElement.style.display=(matchesTerm&&matchesStatus)?'':'';
+      })
+    }
+    q.addEventListener('input', apply);
+    f.addEventListener('change', apply);
+  })();
+</script>
+
+
+<script>
+(function(){
+  function updateSummary(){
+    const cards = document.querySelectorAll('.vehicle-card');
+    const total = cards.length;
+    let enc=0, aud=0;
+    cards.forEach(card=>{ enc += (card.getAttribute('data-status')==='on')?1:0; aud += (card.getAttribute('data-audio')==='on')?1:0; });
+    const apag = total - enc;
+    const set = (id,val)=>{ const el=document.getElementById(id); if(el) el.textContent = String(val); };
+    set('kpi-total', total); set('kpi-encendidos', enc); set('kpi-apagados', apag); set('kpi-audio', aud);
+  }
+  window._updateSummary = updateSummary;
+  document.addEventListener('DOMContentLoaded', updateSummary);
+})();
+</script>
+

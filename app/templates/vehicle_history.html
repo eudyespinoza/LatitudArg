@@ -1,0 +1,112 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+<div class="card mb-4 shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div>
+      <h2 class="mb-0">Historial de Recorridos</h2>
+      <small class="text-muted">{{ vehicle.name }} ({{ vehicle.patente }})</small>
+    </div>
+    <div>
+      <a class="btn btn-outline-primary btn-sm" href="{{ url_for('main.vehicle_map', vehicle_id=vehicle.id) }}"><i class="bi bi-geo-alt me-1"></i>Mapa en vivo</a>
+    </div>
+  </div>
+  <div class="card-body">
+    <form id="history-form" class="row g-2 align-items-end mb-3">
+      <div class="col-md-4">
+        <label class="form-label">Desde</label>
+        <input type="datetime-local" class="form-control" id="from" value="{{ default_from }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Hasta</label>
+        <input type="datetime-local" class="form-control" id="to" value="{{ default_to }}">
+      </div>
+      <div class="col-12">
+        <div class="chips">
+          <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="1h"><i class="bi bi-lightning-charge"></i> 1 h</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="6h">6 h</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="12h">12 h</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="24h">24 h</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="7d">7 días</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="hoy"><i class="bi bi-calendar-day"></i> Hoy</button>
+        </div>
+      </div>
+      <div class="col-md-4 d-flex gap-2">
+        <button type="button" id="load-history" class="btn btn-primary flex-grow-1"><i class="bi bi-activity me-1"></i>Mostrar historial</button>
+        <a id="download-csv" class="btn btn-outline-secondary" href="#"><i class="bi bi-download me-1"></i>CSV</a>
+      </div>
+    </form>
+    <div id="map" class="rounded shadow-sm" style="height: 460px; width: 100%;"></div>
+    <div class="mt-3">
+      <span class="badge bg-info me-2" id="points-count">0 puntos</span>
+      <span class="badge bg-secondary" id="distance-total">0 km</span>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  // init map
+  var map = L.map('map').setView([{{ vehicle.lat|default(-34.6037, true)|float }}, {{ vehicle.lng|default(-58.3816, true)|float }}], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+  var trackLayer = L.layerGroup().addTo(map);
+  var bounds = null;
+
+  function haversine(a, b){
+    var R=6371; // km
+    var dLat=(b[0]-a[0])*Math.PI/180, dLng=(b[1]-a[1])*Math.PI/180;
+    var s= Math.sin(dLat/2)**2 + Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLng/2)**2;
+    return 2*R*Math.asin(Math.sqrt(s));
+  }
+
+  function render(points){
+    trackLayer.clearLayers();
+    if(!points || points.length===0){ return; }
+    var latlngs = points.filter(p => !isNaN(p.lat) && !isNaN(p.lng)).map(p=>[p.lat, p.lng]);
+    var poly = L.polyline(latlngs, {color:'#1e88e5', weight:4}).addTo(trackLayer);
+    L.circleMarker(latlngs[0], {radius:5, color:'#2e7d32'}).addTo(trackLayer).bindTooltip('Inicio');
+    L.circleMarker(latlngs[latlngs.length-1], {radius:5, color:'#c62828'}).addTo(trackLayer).bindTooltip('Fin');
+    bounds = poly.getBounds(); map.fitBounds(bounds, {padding:[20,20]});
+    // stats
+    document.getElementById('points-count').textContent = points.length + ' puntos';
+    var dist=0; for(var i=1;i<latlngs.length;i++){ dist += haversine(latlngs[i-1], latlngs[i]); }
+    document.getElementById('distance-total').textContent = dist.toFixed(2) + ' km';
+  }
+
+  function load(){
+    var from = document.getElementById('from').value;
+    var to = document.getElementById('to').value;
+    var url = `/api/vehicle/{{ vehicle.id }}/history?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&source=mongo`;
+    fetch(url).then(r=>r.json()).then(d=>{
+      if(d.status==='success') render(d.points); else console.error(d);
+    }).catch(e=>console.error(e));
+    document.getElementById('download-csv').href = `/api/vehicle/{{ vehicle.id }}/history?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&format=csv`;
+  }
+
+  document.getElementById('load-history').addEventListener('click', load);
+  // Quick-range selector
+  function pad(n){return n<10?'0'+n:n}
+  function fmtLocal(dt){
+    return dt.getFullYear()+ '-' + pad(dt.getMonth()+1) + '-' + pad(dt.getDate()) + 'T' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
+  }
+  document.querySelectorAll('[data-q]')?.forEach(btn=>{
+    btn.addEventListener('click', function(){
+      var now = new Date();
+      var from = new Date(now);
+      var q = this.getAttribute('data-q');
+      if(q==='1h') from.setHours(now.getHours()-1);
+      else if(q==='6h') from.setHours(now.getHours()-6);
+      else if(q==='12h') from.setHours(now.getHours()-12);
+      else if(q==='24h') from.setDate(now.getDate()-1);
+      else if(q==='7d') from.setDate(now.getDate()-7);
+      else if(q==='hoy') { from = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0) }
+      document.getElementById('to').value = fmtLocal(now);
+      document.getElementById('from').value = fmtLocal(from);
+      load();
+    });
+  });
+  load();
+});
+</script>
+{% endblock %}
+
+

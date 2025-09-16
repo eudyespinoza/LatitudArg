@@ -1,0 +1,41 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+<div class="card mb-4 shadow-sm">
+    <div class="card-header">
+        <h2 class="mb-0">Perfil</h2>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('main.profile') }}">
+            {{ csrf_field() }}
+            <div class="mb-3">
+                <label for="username" class="form-label">Usuario</label>
+                <input type="text" class="form-control" id="username" name="username" value="{{ request.user.username }}" readonly>
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Correo</label>
+                <input type="email" class="form-control" id="email" name="email" value="{{ request.user.email }}" readonly>
+            </div>
+            <div class="mb-3">
+                <label for="keyword" class="form-label">Palabra Clave</label>
+                <input type="text" class="form-control" id="keyword" name="keyword" value="{{ request.user.keyword or '' }}">
+            </div>
+            <h4 class="h5 mt-4 mb-3">Cambiar Contraseña</h4>
+            <div class="mb-3">
+                <label for="current_password" class="form-label">Contraseña Actual</label>
+                <input type="password" class="form-control" id="current_password" name="current_password">
+            </div>
+            <div class="mb-3">
+                <label for="new_password" class="form-label">Nueva Contraseña</label>
+                <input type="password" class="form-control" id="new_password" name="new_password">
+            </div>
+            <div class="mb-3">
+                <label for="confirm_password" class="form-label">Confirmar Nueva Contraseña</label>
+                <input type="password" class="form-control" id="confirm_password" name="confirm_password">
+            </div>
+            <button type="submit" class="btn btn-primary transition">Guardar Cambios</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+

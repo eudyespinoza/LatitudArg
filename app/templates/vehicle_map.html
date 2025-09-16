@@ -1,0 +1,507 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+<div class="card mb-4 shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="mb-0">{{ vehicle.name }}</h2>
+            <span id="vehicle-state" class="badge bg-{% if vehicle.vehicle_on %}success{% else %}danger{% endif %}">{{ 'Encendido' if vehicle.vehicle_on else 'Apagado' }}</span>
+        </div>
+        <div>
+            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('main.vehicle_history', vehicle_id=vehicle.id) }}"><i class="bi bi-clock-history me-1"></i>Historial</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row g-2 mb-3">
+            <div class="col-lg-6">
+                <div id="map" class="rounded shadow-sm" style="height: 400px; width: 100%;"></div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card vehicle-info-card h-100">
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><strong>Patente:</strong> {{ vehicle.patente }}</li>
+                            <li class="list-group-item"><strong>ID Dispositivo:</strong> {{ vehicle.device_id or 'N/A' }}</li>
+                            <li class="list-group-item"><strong>Latitud:</strong>
+                                {% if vehicle.lat|float == 0.0 and vehicle.lng|float == 0.0 %}
+                                    <span id="lat">Señal GPS perdida</span>
+                                {% else %}
+                                    <span id="lat">{{ vehicle.lat|default(-34.6037, true)|float|round(6) }}</span>
+                                {% endif %}
+                            </li>
+                            <li class="list-group-item"><strong>Longitud:</strong>
+                                {% if vehicle.lat|float == 0.0 and vehicle.lng|float == 0.0 %}
+                                    <span id="lng">Señal GPS perdida</span>
+                                {% else %}
+                                    <span id="lng">{{ vehicle.lng|default(-58.3816, true)|float|round(6) }}</span>
+                                {% endif %}
+                            </li>
+                            <li class="list-group-item"><strong>Velocidad:</strong> <span id="speed">{{ vehicle.speed|default(0.0)|float|round(2) }} km/h</span></li>
+                            <li class="list-group-item"><strong>Señal:</strong>
+                                {% set signal = (vehicle.signal_quality or 0)|int %}
+                                <span class="signal-bars {% if signal < 13 %}low{% elif signal < 25 %}medium{% else %}high{% endif %}" id="signal-quality">
+                                    {% if signal <= 6 %}
+                                        <i class="bi bi-reception-0"></i>
+                                    {% elif signal <= 12 %}
+                                        <i class="bi bi-reception-1"></i>
+                                    {% elif signal <= 18 %}
+                                        <i class="bi bi-reception-2"></i>
+                                    {% elif signal <= 24 %}
+                                        <i class="bi bi-reception-3"></i>
+                                    {% else %}
+                                        <i class="bi bi-reception-4"></i>
+                                    {% endif %}
+                                </span>
+                            </li>
+                            <li class="list-group-item"><strong>Última Actualización:</strong> <span id="last-updated">{{ vehicle.last_updated|default('N/A', true) }}</span></li>
+                            <li class="list-group-item"><strong>Comando:</strong> <span class="badge bg-{% if not vehicle.shutdown %}success{% else %}danger{% endif %}" id="control-state">{{ 'Encendido' if not vehicle.shutdown else 'Apagado' }}</span></li>
+                            <li class="list-group-item"><strong>Audio:</strong> <span class="badge bg-{% if vehicle.transmit_audio %}success{% else %}danger{% endif %}" id="audio-state">{{ 'Activada' if vehicle.transmit_audio else 'Desactivada' }}</span></li>
+                        </ul>
+                        <div class="mt-3 d-flex gap-2">
+                            <button id="shutdownToggle" class="btn btn-outline-{% if not vehicle.shutdown %}success{% else %}danger{% endif %} btn-sm transition shutdown-toggle" title="{{ 'Apagar Vehículo' if not vehicle.shutdown else 'Encender Vehículo' }}">
+                                <i class="bi bi-power {% if not vehicle.shutdown %}text-success{% else %}text-danger{% endif %} me-1"></i> {{ 'Apagar' if not vehicle.shutdown else 'Encender' }}
+                            </button>
+                            <button id="audioToggle" class="btn btn-outline-{% if vehicle.transmit_audio %}success{% else %}danger{% endif %} btn-sm transition" title="{{ 'Desactivar Audio' if vehicle.transmit_audio else 'Activar Audio' }}">
+                                <i class="bi {% if vehicle.transmit_audio %}bi-volume-mute text-danger{% else %}bi-volume-up text-success{% endif %} me-1"></i> {{ 'Desactivar' if vehicle.transmit_audio else 'Activar' }} Audio
+                            </button>
+                            <button id="call911" class="btn btn-outline-danger btn-sm transition" title="Llamar al 911" data-bs-toggle="modal" data-bs-target="#call911Modal">
+                                <i class="bi bi-telephone me-1"></i> 911
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="shutdownModal" tabindex="-1" aria-labelledby="shutdownModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-light border-0">
+                <h5 class="modal-title text-primary" id="shutdownModalLabel"><i class="bi bi-exclamation-circle me-2"></i>Confirmar Acción</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted"><i class="bi bi-exclamation-circle me-2 text-warning"></i>¿Estás seguro de que deseas <span id="shutdownActionText"></span> este vehículo?</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary btn-sm transition shadow-sm" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-sm transition shadow-sm" id="confirmShutdown">
+                    <i class="bi bi-power me-2"></i>Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="call911Modal" tabindex="-1" aria-labelledby="call911ModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-danger text-white border-0">
+                <h5 class="modal-title" id="call911ModalLabel"><i class="bi bi-telephone-fill me-2"></i>Emergencia 911</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted"><i class="bi bi-exclamation-triangle-fill me-2 text-danger"></i>¿Estás seguro de que deseas realizar una llamada de emergencia al 911?</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary btn-sm transition shadow-sm" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-danger btn-sm transition shadow-sm" id="confirmEmergency">
+                    <i class="bi bi-telephone-fill me-2"></i>Llamar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+<script src="{{ url_for('static', filename='js/shutdown.js') }}"></script>
+<script>
+    let currentVehicleId = null;
+    let shutdownAction = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            initMap({
+                lat: {{ vehicle.lat|default(-34.6037, true)|float }},
+                lng: {{ vehicle.lng|default(-58.3816, true)|float }},
+                vehicleId: '{{ vehicle.id }}',
+                type: '{{ vehicle.type }}',
+                speed: {{ vehicle.speed|default(0.0)|float }},
+                lastUpdated: '{{ vehicle.last_updated|default('N/A', true) }}',
+                signal_quality: {{ vehicle.signal_quality|default(0, true)|int }}
+            });
+        } catch (error) {
+            console.error('Error inicializando mapa:', error);
+            document.getElementById('map').innerHTML = '<p class="text-danger">Error al cargar el mapa.</p>';
+        }
+    });
+
+    function toggleShutdown(vehicleId) {
+        currentVehicleId = vehicleId;
+        const toggle = document.getElementById('shutdownToggle');
+        shutdownAction = toggle.classList.contains('btn-outline-success') ? 'apagar' : 'encender';
+        document.getElementById('shutdownActionText').textContent = shutdownAction;
+        document.getElementById('confirmShutdown').className = `btn btn-${shutdownAction === 'apagar' ? 'danger' : 'success'} btn-sm transition shadow-sm`;
+        const modal = new bootstrap.Modal(document.getElementById('shutdownModal'));
+        modal.show();
+    }
+
+    function toggleAudio(vehicleId) {
+        fetch(`/api/vehicle/${vehicleId}/audio`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${data.status === 'success' ? 'primary' : 'danger'} alert-dismissible fade show modern-alert shadow-sm animate__animated animate__fadeInDown`;
+            notification.innerHTML = `
+                <i class="bi ${data.status === 'success' ? 'bi-info-circle' : 'bi-exclamation-circle'} me-2"></i>
+                ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            document.getElementById('notification-container').appendChild(notification);
+            setTimeout(() => {
+                notification.classList.remove('animate__fadeInDown');
+                notification.classList.add('animate__fadeOutUp');
+                setTimeout(() => notification.remove(), 500);
+            }, 5000);
+        })
+        .catch(error => {
+            const notification = document.createElement('div');
+            notification.className = 'alert alert-danger alert-dismissible fade show modern-alert shadow-sm animate__animated animate__fadeInDown';
+            notification.innerHTML = `
+                <i class="bi bi-exclamation-circle me-2"></i>
+                Error: ${error}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            document.getElementById('notification-container').appendChild(notification);
+            setTimeout(() => {
+                notification.classList.remove('animate__fadeInDown');
+                notification.classList.add('animate__fadeOutUp');
+                setTimeout(() => notification.remove(), 500);
+            }, 5000);
+        });
+    }
+
+    function call911() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('call911Modal'));
+        modal.hide();
+        fetch(`/api/vehicle/${currentVehicleId}/emergency`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${data.status === 'success' ? 'primary' : 'danger'} alert-dismissible fade show modern-alert shadow-sm animate__animated animate__fadeInDown`;
+            notification.innerHTML = `
+                <i class="bi ${data.status === 'success' ? 'bi-info-circle' : 'bi-exclamation-circle'} me-2"></i>
+                ${data.status === 'success' ? 'Llamada de emergencia realizada.' : data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            document.getElementById('notification-container').appendChild(notification);
+            setTimeout(() => {
+                notification.classList.remove('animate__fadeInDown');
+                notification.classList.add('animate__fadeOutUp');
+                setTimeout(() => notification.remove(), 500);
+            }, 5000);
+        })
+        .catch(error => {
+            const notification = document.createElement('div');
+            notification.className = 'alert alert-danger alert-dismissible fade show modern-alert shadow-sm animate__animated animate__fadeInDown';
+            notification.innerHTML = `
+                <i class="bi bi-exclamation-circle me-2"></i>
+                Error: ${error}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            document.getElementById('notification-container').appendChild(notification);
+            setTimeout(() => {
+                notification.classList.remove('animate__fadeInDown');
+                notification.classList.add('animate__fadeOutUp');
+                setTimeout(() => notification.remove(), 500);
+            }, 5000);
+        });
+    }
+
+    // Initialize SSE (disabled) - usamos WebSocket desde extra_js
+    try {
+        window.EventSource = function(){
+            console.warn('SSE deshabilitado: usando WebSocket');
+            return { onmessage: null, onerror: null, close: function(){} };
+        };
+    } catch(e) { /* noop */ }
+    document.addEventListener('DOMContentLoaded', () => {
+        const eventSource = new EventSource(`/stream/subscribe/{{ vehicle.id }}`);
+        eventSource.onmessage = function(event) {
+            const data = event.data.trim();
+            console.log('Mensaje SSE recibido:', data);
+            // Verificar si es un heartbeat
+            if (data === ':heartbeat') {
+                console.log('Heartbeat recibido');
+                return; // Ignorar y no parsear
+            }
+            // Parsear solo si es un mensaje de datos
+            try {
+                const parsedData = JSON.parse(data);
+                console.log('Datos parseados:', parsedData);
+                if (parsedData.vehicle_id === '{{ vehicle.id }}') {
+                    const newPos = { lat: parseFloat(parsedData.lat), lng: parseFloat(parsedData.lng) };
+                    const newSpeed = parseFloat(parsedData.speed);
+                    const signalQuality = parseInt(parsedData.signal_quality || 0);
+                    const newLastUpdated = parsedData.last_updated;
+                    // Verificar y actualizar el marcador si existe
+                    if (!isNaN(newPos.lat) && !isNaN(newPos.lng)) {
+                        if (window.marker && window.map) {
+                            if (newPos.lat === 0.0 && newPos.lng === 0.0) {
+                                document.getElementById('lat').textContent = 'Señal GPS perdida';
+                                document.getElementById('lng').textContent = 'Señal GPS perdida';
+                            } else {
+                                window.marker.setPosition(newPos);
+                                window.map.setCenter(newPos);
+                                document.getElementById('lat').textContent = newPos.lat.toFixed(6);
+                                document.getElementById('lng').textContent = newPos.lng.toFixed(6);
+                            }
+                            console.log('Marcador actualizado a:', newPos);
+                        } else {
+                            console.warn('window.marker o window.map no definidos, intentando reinicializar');
+                            if (window.map) {
+                                let iconUrl;
+                                switch ((parsedData.type || 'auto').toLowerCase()) {
+                                    case 'auto': iconUrl = '/static/img/auto.png'; break;
+                                    case 'moto': iconUrl = '/static/img/moto.png'; break;
+                                    case 'barco': iconUrl = '/static/img/barco.png'; break;
+                                    case 'perro': iconUrl = '/static/img/perro.png'; break;
+                                    case 'gato': iconUrl = '/static/img/gato.png'; break;
+                                    default: iconUrl = '/static/img/auto.png';
+                                }
+                                window.marker = new google.maps.Marker({
+                                    position: newPos,
+                                    map: window.map,
+                                    title: 'Vehículo',
+                                    icon: {
+                                        url: iconUrl,
+                                        scaledSize: new google.maps.Size(40, 40)
+                                    }
+                                });
+                                console.log('Marcador reinicializado con posición:', newPos);
+                            } else {
+                                console.error('window.map no disponible para reinicializar el marcador');
+                            }
+                        }
+                    }
+                    const speedElement = document.getElementById('speed');
+                    if (speedElement) speedElement.textContent = newSpeed.toFixed(2) + ' km/h';
+                    else console.error('Elemento speed no encontrado');
+                    const signalSpan = document.getElementById('signal-quality');
+                    if (signalSpan) {
+                        signalSpan.className = `signal-bars ${signalQuality < 13 ? 'low' : signalQuality < 25 ? 'medium' : 'high'}`;
+                        signalSpan.innerHTML = signalQuality <= 6 ? '<i class="bi bi-reception-0"></i>' :
+                                          signalQuality <= 12 ? '<i class="bi bi-reception-1"></i>' :
+                                          signalQuality <= 18 ? '<i class="bi bi-reception-2"></i>' :
+                                          signalQuality <= 24 ? '<i class="bi bi-reception-3"></i>' :
+                                          '<i class="bi bi-reception-4"></i>';
+                    } else console.error('Elemento signal-quality no encontrado');
+                    const lastUpdatedElement = document.getElementById('last-updated');
+                    if (lastUpdatedElement) lastUpdatedElement.textContent = newLastUpdated;
+                    else console.error('Elemento last-updated no encontrado');
+                    const vehicleState = document.getElementById('vehicle-state');
+                    if (vehicleState) {
+                        vehicleState.className = `badge bg-${parsedData.vehicle_on ? 'success' : 'danger'}`;
+                        vehicleState.textContent = parsedData.vehicle_on ? 'Encendido' : 'Apagado';
+                    } else console.error('Elemento vehicle-state no encontrado');
+                    const controlState = document.getElementById('control-state');
+                    if (controlState) {
+                        controlState.className = `badge bg-${!parsedData.shutdown ? 'success' : 'danger'}`;
+                        controlState.textContent = !parsedData.shutdown ? 'Encendido' : 'Apagado';
+                    } else console.error('Elemento control-state no encontrado');
+                    const audioState = document.getElementById('audio-state');
+                    if (audioState) {
+                        audioState.className = `badge bg-${parsedData.transmit_audio ? 'success' : 'danger'}`;
+                        audioState.textContent = parsedData.transmit_audio ? 'Activada' : 'Desactivada';
+                    } else console.error('Elemento audio-state no encontrado');
+                    const toggleShutdown = document.getElementById('shutdownToggle');
+                    if (toggleShutdown) {
+                        const icon = toggleShutdown.querySelector('i');
+                        toggleShutdown.className = `btn btn-outline-${!parsedData.shutdown ? 'success' : 'danger'} btn-sm transition shutdown-toggle`;
+                        if (icon) {
+                            icon.className = `bi bi-power ${!parsedData.shutdown ? 'text-success' : 'text-danger'} me-1`;
+                        } else {
+                            console.warn('Ícono de shutdownToggle no encontrado, reinsertando');
+                            toggleShutdown.innerHTML = `<i class="bi bi-power ${!parsedData.shutdown ? 'text-success' : 'text-danger'} me-1"></i> ${!parsedData.shutdown ? 'Apagar' : 'Encender'}`;
+                        }
+                        toggleShutdown.title = !parsedData.shutdown ? 'Apagar Vehículo' : 'Encender Vehículo';
+                    } else console.error('Elemento shutdownToggle no encontrado');
+                    const toggleAudio = document.getElementById('audioToggle');
+                    if (toggleAudio) {
+                        const icon = toggleAudio.querySelector('i');
+                        toggleAudio.className = `btn btn-outline-${parsedData.transmit_audio ? 'success' : 'danger'} btn-sm transition`;
+                        if (icon) {
+                            icon.className = `bi ${parsedData.transmit_audio ? 'bi-volume-mute text-danger' : 'bi-volume-up text-success'} me-1`;
+                        } else {
+                            console.warn('Ícono de audioToggle no encontrado, reinsertando');
+                            toggleAudio.innerHTML = `<i class="bi ${parsedData.transmit_audio ? 'bi-volume-mute text-danger' : 'bi-volume-up text-success'} me-1"></i> ${parsedData.transmit_audio ? 'Desactivar' : 'Activar'} Audio`;
+                        }
+                        toggleAudio.title = parsedData.transmit_audio ? 'Desactivar Audio' : 'Activar Audio';
+                    } else console.error('Elemento audioToggle no encontrado');
+                }
+            } catch (e) {
+                console.error('Error al parsear datos SSE:', e);
+            }
+        };
+        eventSource.onerror = function() {
+            console.error('Error en la conexión SSE');
+            eventSource.close();
+        };
+
+        // Restaurar eventos de los botones
+        document.getElementById('shutdownToggle').addEventListener('click', () => toggleShutdown('{{ vehicle.id }}'));
+        document.getElementById('audioToggle').addEventListener('click', () => toggleAudio('{{ vehicle.id }}'));
+
+        document.getElementById('confirmShutdown').addEventListener('click', () => {
+            if (!currentVehicleId) return;
+            fetch(`/api/vehicle/${currentVehicleId}/shutdown`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const notification = document.createElement('div');
+                notification.className = `alert alert-${data.status === 'success' ? 'primary' : 'danger'} alert-dismissible fade show modern-alert shadow-sm animate__animated animate__fadeInDown`;
+                notification.innerHTML = `
+                    <i class="bi ${data.status === 'success' ? 'bi-info-circle' : 'bi-exclamation-circle'} me-2"></i>
+                    ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                document.getElementById('notification-container').appendChild(notification);
+                setTimeout(() => {
+                    notification.classList.remove('animate__fadeInDown');
+                    notification.classList.add('animate__fadeOutUp');
+                    setTimeout(() => notification.remove(), 500);
+                }, 5000);
+            })
+            .catch(error => {
+                const notification = document.createElement('div');
+                notification.className = 'alert alert-danger alert-dismissible fade show modern-alert shadow-sm animate__animated animate__fadeInDown';
+                notification.innerHTML = `
+                    <i class="bi bi-exclamation-circle me-2"></i>
+                    Error: ${error}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                document.getElementById('notification-container').appendChild(notification);
+                setTimeout(() => {
+                    notification.classList.remove('animate__fadeInDown');
+                    notification.classList.add('animate__fadeOutUp');
+                    setTimeout(() => notification.remove(), 500);
+                }, 5000);
+            });
+            const modal = bootstrap.Modal.getInstance(document.getElementById('shutdownModal'));
+            modal.hide();
+        });
+
+        document.getElementById('confirmEmergency').addEventListener('click', () => {
+            if (!currentVehicleId) return;
+            fetch(`/api/vehicle/${currentVehicleId}/emergency`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const notification = document.createElement('div');
+                notification.className = `alert alert-${data.status === 'success' ? 'primary' : 'danger'} alert-dismissible fade show modern-alert shadow-sm animate__animated animate__fadeInDown`;
+                notification.innerHTML = `
+                    <i class="bi ${data.status === 'success' ? 'bi-info-circle' : 'bi-exclamation-circle'} me-2"></i>
+                    ${data.status === 'success' ? 'Llamada de emergencia realizada.' : data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                document.getElementById('notification-container').appendChild(notification);
+                setTimeout(() => {
+                    notification.classList.remove('animate__fadeInDown');
+                    notification.classList.add('animate__fadeOutUp');
+                    setTimeout(() => notification.remove(), 500);
+                }, 5000);
+            })
+            .catch(error => {
+                const notification = document.createElement('div');
+                notification.className = 'alert alert-danger alert-dismissible fade show modern-alert shadow-sm animate__animated animate__fadeInDown';
+                notification.innerHTML = `
+                    <i class="bi bi-exclamation-circle me-2"></i>
+                    Error: ${error}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                document.getElementById('notification-container').appendChild(notification);
+                setTimeout(() => {
+                    notification.classList.remove('animate__fadeInDown');
+                    notification.classList.add('animate__fadeOutUp');
+                    setTimeout(() => notification.remove(), 500);
+                }, 5000);
+            });
+            const modal = bootstrap.Modal.getInstance(document.getElementById('call911Modal'));
+            modal.hide();
+        });
+    });
+</script>
+<!-- Leaflet ya cargado globalmente en base.html -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // WebSocket live updates (Django Channels)
+  (function(){
+    try {
+      var proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      var url = proto + '://' + window.location.host + '/ws/vehicle/{{ vehicle.id }}/';
+      var ws = new WebSocket(url);
+      ws.onmessage = function(evt){
+        try{
+          var parsedData = JSON.parse(evt.data);
+          if (parsedData.vehicle_id === '{{ vehicle.id }}') {
+            var lat = parseFloat(parsedData.lat), lng = parseFloat(parsedData.lng);
+            if (!isNaN(lat) && !isNaN(lng)) {
+              if (window.marker && window.map) {
+                if (lat === 0.0 && lng === 0.0) {
+                  document.getElementById('lat').textContent = 'Señal GPS perdida';
+                  document.getElementById('lng').textContent = 'Señal GPS perdida';
+                } else {
+                  window.marker.setLatLng([lat, lng]);
+                  window.map.setView([lat, lng]);
+                  document.getElementById('lat').textContent = lat.toFixed(6);
+                  document.getElementById('lng').textContent = lng.toFixed(6);
+                }
+              }
+            }
+            var s = parseFloat(parsedData.speed || 0);
+            var sq = parseInt(parsedData.signal_quality || 0);
+            var lu = parsedData.last_updated;
+            var speedEl = document.getElementById('speed');
+            if (speedEl) speedEl.textContent = (isNaN(s)?0:s).toFixed(2) + ' km/h';
+            var lastEl = document.getElementById('last-updated');
+            if (lastEl && lu) lastEl.textContent = lu;
+            var signalEl = document.getElementById('signal-quality');
+            if (signalEl) {
+              signalEl.className = 'signal-bars ' + (sq < 13 ? 'low' : (sq < 25 ? 'medium' : 'high'));
+              signalEl.innerHTML = (sq <= 6 ? '<i class="bi bi-reception-0"></i>' :
+                sq <= 12 ? '<i class="bi bi-reception-1"></i>' :
+                sq <= 18 ? '<i class="bi bi-reception-2"></i>' :
+                sq <= 24 ? '<i class="bi bi-reception-3"></i>' :
+                           '<i class="bi bi-reception-4"></i>');
+            }
+            var vs = document.getElementById('vehicle-state');
+            if (vs) { vs.className = 'badge bg-' + (parsedData.vehicle_on ? 'success':'danger'); vs.textContent = parsedData.vehicle_on ? 'Encendido' : 'Apagado'; }
+            var cs = document.getElementById('control-state');
+            if (cs) { cs.className = 'badge bg-' + (parsedData.shutdown ? 'danger':'success'); cs.textContent = parsedData.shutdown ? 'Apagado' : 'Encendido'; }
+            var asEl = document.getElementById('audio-state');
+            if (asEl) { asEl.className = 'badge bg-' + (parsedData.transmit_audio ? 'success':'danger'); asEl.textContent = parsedData.transmit_audio ? 'Activada' : 'Desactivada'; }
+          }
+        }catch(e){console.error('WS parse error', e)}
+      };
+    } catch(e) { console.warn('WS init failed', e); }
+  })();
+</script>
+{% endblock %}
+
