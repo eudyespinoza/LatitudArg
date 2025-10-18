@@ -2,9 +2,18 @@ services:
   web:
     build: .
     expose:
-      - "8001"
+      - "8001"  # puerto interno donde escucha la app
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request,sys;\nimport socket; socket.setdefaulttimeout(2);\n\ntry:\n  urllib.request.urlopen('http://127.0.0.1:8001/login');\n  sys.exit(0)\nexcept Exception as e:\n  sys.exit(1)\n\" "]
+      test:
+        - "CMD-SHELL"
+        - >-
+          python -c "import urllib.request,sys; import socket; socket.setdefaulttimeout(2);
+          import urllib.error;
+          import time;
+          url='http://127.0.0.1:8001/login';
+          import os;
+          try: urllib.request.urlopen(url); sys.exit(0)
+          except Exception as e: sys.exit(1)"
       interval: 10s
       timeout: 5s
       retries: 6
@@ -15,7 +24,7 @@ services:
       - SQLITE_DB_PATH=/data/gps_monitoring.db
       - REDIS_URL=redis://redis:6379/1
       - MONGO_URI=mongodb://mongodb:27017/gps_monitoring
-      - ALLOWED_HOSTS=localhost,127.0.0.1,latitudarg.com,latitudarg.com.ar,www.latitudarg.com,www.latitudarg.com.ar
+      - ALLOWED_HOSTS=localhost,127.0.0.1,latitudarg.com,www.latitudarg.com
     depends_on:
       redis:
         condition: service_healthy
@@ -24,15 +33,39 @@ services:
     volumes:
       - db-data:/data
       - static-data:/app/staticfiles
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+
+      # Router principal por dominio
+      - "traefik.http.routers.latitudarg.rule=Host(`latitudarg.com`) || Host(`www.latitudarg.com`)"
+      - "traefik.http.routers.latitudarg.entrypoints=websecure"
+      - "traefik.http.routers.latitudarg.tls=true"
+      - "traefik.http.routers.latitudarg.tls.options=default@file"
+
+      # Middlewares definidos en Traefik externo
+      - "traefik.http.routers.latitudarg.middlewares=default-sec-headers@file,gzip-compress@file"
+
+      # Servicio (puerto interno de la app)
+      - "traefik.http.routers.latitudarg.service=latitudarg"
+      - "traefik.http.services.latitudarg.loadbalancer.server.port=8001"
+    networks:
+      - traefik_proxy
+      - latitudarg_internal
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
-    # No es necesario exponer a host; la app accede por red interna
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
       start_period: 5s
+    networks:
+      - latitudarg_internal
+    restart: unless-stopped
+
   mongodb:
     image: mongo:7
     volumes:
@@ -43,21 +76,17 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
-  nginx:
-    image: nginx:1.25-alpine
-    depends_on:
-      web:
-        condition: service_healthy
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - static-data:/app/staticfiles:ro
-      - /etc/ssl/latitudarg:/etc/ssl/latitudarg:ro
-
+    networks:
+      - latitudarg_internal
+    restart: unless-stopped
 
 volumes:
   db-data:
   static-data:
   mongo-data:
+
+networks:
+  traefik_proxy:
+    external: true
+  latitudarg_internal:
+    driver: bridge

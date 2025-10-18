@@ -14,7 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . /app
 RUN chmod +x /app/entrypoint.sh
 
-EXPOSE 8000
+# The app listens on 8001 (see entrypoint), expose it for clarity (Traefik uses labels)
+EXPOSE 8001
 
 ENV DEBUG=0
 CMD ["/app/entrypoint.sh"]

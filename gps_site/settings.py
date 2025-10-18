@@ -154,3 +154,12 @@ else:
     }
 
 MONGO_URI = os.getenv('MONGO_URI', 'mongodb://mongodb:27017/gps_monitoring')
+
+# Security and proxy headers (Traefik)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_HSTS_SECONDS = 60 if not DEBUG else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_HSTS_PRELOAD = not DEBUG
+USE_X_FORWARDED_HOST = True
