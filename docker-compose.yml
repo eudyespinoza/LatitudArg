@@ -32,8 +32,7 @@ services:
       - "traefik.http.routers.latitudarg.rule=Host(`latitudarg.com`) || Host(`www.latitudarg.com`)"
       - "traefik.http.routers.latitudarg.entrypoints=websecure"
       - "traefik.http.routers.latitudarg.tls=true"
-      - "traefik.http.routers.latitudarg.tls.options=default@file"
-
+      
       # Middlewares definidos en Traefik externo
       - "traefik.http.routers.latitudarg.middlewares=default-sec-headers@file,gzip-compress@file"
 
