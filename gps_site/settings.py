@@ -32,6 +32,8 @@ DEFAULT_CSRF_TRUSTED_ORIGINS = [
         'www.latitudarg.com',
         'latitudarg.com.ar',
         'www.latitudarg.com.ar',
+        'localhost',
+        '127.0.0.1',
     ]
     for scheme in ('https', 'http')
 ]
@@ -200,13 +202,15 @@ LOGGING = {
 }
 
 # Security and proxy headers (Traefik)
+# Trust X-Forwarded-Proto from Traefik so Django knows the request is HTTPS
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_REDIRECT_EXEMPT = []  # Traefik handles HTTP→HTTPS redirect
+USE_X_FORWARDED_HOST = True
 SESSION_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_HTTPONLY = False  # must be readable by JS-less flows but cookie is server-managed
+CSRF_COOKIE_HTTPONLY = False
 SECURE_HSTS_SECONDS = 60 if not DEBUG else 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
 SECURE_HSTS_PRELOAD = not DEBUG
-USE_X_FORWARDED_HOST = True
