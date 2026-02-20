@@ -3,6 +3,12 @@ services:
     build: .
     expose:
       - "8001"  # puerto interno donde escucha la app
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+        compress: "true"
     healthcheck:
       test: ["CMD-SHELL", "python /app/healthcheck.py"]
       interval: 10s
@@ -46,6 +52,12 @@ services:
 
   redis:
     image: redis:7-alpine
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+        compress: "true"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -60,6 +72,12 @@ services:
     image: mongo:7
     volumes:
       - mongo-data:/data/db
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+        compress: "true"
     healthcheck:
       test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping').ok\" | grep 1 || exit 1"]
       interval: 10s

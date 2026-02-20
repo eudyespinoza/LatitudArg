@@ -155,6 +155,50 @@ else:
 
 MONGO_URI = os.getenv('MONGO_URI', 'mongodb://mongodb:27017/gps_monitoring')
 
+# ---------------------------------------------------------------------------
+# Logging — JSON estructurado hacia stdout; Docker se encarga de la rotación.
+# Se usa pythonjsonlogger para que cada línea sea un JSON compacto que el
+# driver json-file de Docker puede comprimir hasta un 80 % al rotar.
+# ---------------------------------------------------------------------------
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'json': {
+            '()': 'pythonjsonlogger.jsonlogger.JsonFormatter',
+            'format': '%(asctime)s %(levelname)s %(name)s %(message)s',
+            'datefmt': '%Y-%m-%dT%H:%M:%S',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'json',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'WARNING'),
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'gpsapp': {
+            'handlers': ['console'],
+            'level': os.getenv('APP_LOG_LEVEL', 'WARNING'),
+            'propagate': False,
+        },
+    },
+}
+
 # Security and proxy headers (Traefik)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = not DEBUG
