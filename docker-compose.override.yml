@@ -1,0 +1,17 @@
+# Override para desarrollo local.
+# Docker Compose aplica este archivo automáticamente sobre docker-compose.yml.
+# NO subir a producción (o ignorarlo con .dockerignore / .gitignore en el server).
+services:
+  web:
+    ports:
+      - "8001:8001"
+    environment:
+      - DEBUG=1
+    networks:
+      - latitudarg_internal   # solo la red interna; traefik_proxy no existe en local
+
+networks:
+  traefik_proxy:
+    # Redefinir como bridge local para que compose no falle por red external inexistente
+    driver: bridge
+    external: false

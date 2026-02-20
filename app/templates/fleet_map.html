@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+  /* Fleet layout: sidebar + map */
+  .fleet-layout {
+    display: flex;
+    height: calc(100dvh - 130px);
+    border-radius: var(--card-radius, .75rem);
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,.1);
+    border: 1px solid var(--border-color, #dee2e6);
+  }
+
+  /* ── Sidebar ───────────────────────────────── */
+  .fleet-sidebar {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--card-bg, #fff);
+    border-right: 1px solid var(--border-color, #dee2e6);
+    z-index: 10;
+  }
+  .fleet-sidebar-header {
+    padding: .75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    border-bottom: 1px solid var(--border-color, #dee2e6);
+    flex-shrink: 0;
+    background: var(--card-bg, #fff);
+  }
+  .fleet-sidebar-header h6 { flex: 1; margin: 0; font-size: .85rem; color: var(--text-muted, #6c757d); }
+  .fleet-vehicle-list { overflow-y: auto; flex: 1; }
+
+  .fleet-vehicle-item {
+    padding: .65rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color, #dee2e6);
+    transition: background .15s;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+  }
+  .fleet-vehicle-item:hover { background: var(--hover-bg, rgba(13,110,253,.06)); }
+  .fleet-vehicle-item.active { background: rgba(13,110,253,.12); }
+  .fleet-vehicle-item .fv-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .fleet-vehicle-item .fv-info { flex: 1; min-width: 0; }
+  .fleet-vehicle-item .fv-name { font-weight: 600; font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fleet-vehicle-item .fv-meta { font-size: .75rem; color: var(--text-muted, #6c757d); }
+
+  /* status dot */
+  .fleet-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+  .fleet-dot.on  { background: #198754; box-shadow: 0 0 0 2px rgba(25,135,84,.25); }
+  .fleet-dot.off { background: #dc3545; box-shadow: 0 0 0 2px rgba(220,53,69,.25); }
+
+  /* ── Map ───────────────────────────────────── */
+  .fleet-map { flex: 1; z-index: 1; }
+
+  /* Leaflet popup */
+  .fleet-popup strong { display: block; font-size: .9rem; }
+  .fleet-popup .fp-row { display:flex; justify-content:space-between; font-size:.78rem; gap:.5rem; }
+  .fleet-popup .fp-row span:first-child { color: #6c757d; }
+  .fleet-popup .fp-btn {
+    display: block; width: 100%; margin-top: .4rem;
+    font-size: .75rem; padding: .3rem .5rem;
+    border-radius: .4rem; text-align: center; text-decoration: none;
+    background: #0d6efd; color: #fff; border: none; cursor: pointer;
+  }
+  .fleet-popup .fp-btn:hover { background: #0b5ed7; }
+
+  /* Empty state */
+  .fleet-empty {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; height: 100%; gap: 1rem; padding: 2rem;
+    color: var(--text-muted, #6c757d); text-align: center;
+  }
+
+  /* ── Mobile: stack vertically ──────────────── */
+  @media (max-width: 767px) {
+    .fleet-layout {
+      flex-direction: column;
+      height: calc(100dvh - 110px);
+    }
+    .fleet-map { order: 1; flex: 1; min-height: 0; }
+    .fleet-sidebar {
+      order: 2;
+      width: 100%;
+      height: 200px;
+      flex-shrink: 0;
+      border-right: none;
+      border-top: 1px solid var(--border-color, #dee2e6);
+    }
+    .fleet-sidebar.expanded { height: 55vh; }
+    .fleet-sidebar-header { padding: .5rem .75rem; }
+    .fleet-vehicle-item { padding: .5rem .75rem; }
+    /* drag handle on mobile */
+    .fleet-drag-handle {
+      width: 40px; height: 4px; border-radius: 2px;
+      background: var(--border-color, #dee2e6);
+      margin: 0 auto -.25rem;
+      cursor: ns-resize;
+      flex-shrink: 0;
+    }
+    /* body margin-bottom for bottom nav */
+    .fleet-layout { margin-bottom: 0; }
+  }
+  @media (min-width: 768px) {
+    .fleet-drag-handle { display: none; }
+  }
+</style>
+
+<div class="fleet-layout" id="fleetLayout">
+
+  <!-- ── Sidebar ── -->
+  <div class="fleet-sidebar" id="fleetSidebar">
+    <div class="fleet-drag-handle" id="dragHandle"></div>
+    <div class="fleet-sidebar-header">
+      <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1">
+        <i class="bi bi-arrow-left"></i>
+        <span class="d-none d-sm-inline">Dashboard</span>
+      </a>
+      <h6 id="fleetTitle">Cargando…</h6>
+      <button class="btn btn-sm btn-outline-primary d-lg-none" id="togglePanel" title="Expandir panel">
+        <i class="bi bi-chevron-up" id="toggleIcon"></i>
+      </button>
+    </div>
+    <div class="fleet-vehicle-list" id="vehicleListEl"></div>
+  </div>
+
+  <!-- ── Map ── -->
+  <div id="fleetMap" class="fleet-map"></div>
+</div>
+
+<script>
+  // ── Data from Django ────────────────────────────────────────────
+  const VEHICLES = {{ vehicles_json | safe }};
+
+  // ── State ──────────────────────────────────────────────────────
+  const markers  = {};   // id → Leaflet marker
+  const wsConns  = {};   // id → WebSocket
+
+  // ── Icon helper ─────────────────────────────────────────────────
+  function vehicleIcon(type, on) {
+    const t = (type || 'auto').toLowerCase();
+    const iconMap = { auto:'auto', moto:'moto', barco:'barco', perro:'perro', gato:'gato' };
+    const src = `/static/img/${iconMap[t] || 'auto'}.png`;
+    // tint with a colored dot overlay using DivIcon
+    const dot = on
+      ? '<span style="position:absolute;bottom:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:#198754;border:1.5px solid #fff;"></span>'
+      : '<span style="position:absolute;bottom:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:#dc3545;border:1.5px solid #fff;"></span>';
+    return L.divIcon({
+      html: `<div style="position:relative;width:36px;height:36px;"><img src="${src}" width="36" height="36">${dot}</div>`,
+      iconSize: [36, 36], iconAnchor: [18, 18], popupAnchor: [0, -22],
+      className: ''
+    });
+  }
+
+  // ── Popup HTML ──────────────────────────────────────────────────
+  function popupHtml(v) {
+    const statusBadge = v.vehicle_on
+      ? '<span class="badge bg-success">Encendido</span>'
+      : '<span class="badge bg-danger">Apagado</span>';
+    return `<div class="fleet-popup">
+      <strong>${v.name}</strong>
+      <div class="fp-row"><span>Patente</span><span>${v.patente}</span></div>
+      <div class="fp-row"><span>Estado</span><span>${statusBadge}</span></div>
+      <div class="fp-row"><span>Velocidad</span><span>${Number(v.speed||0).toFixed(1)} km/h</span></div>
+      <div class="fp-row"><span>Actualización</span><span>${v.last_updated || 'N/A'}</span></div>
+      <a class="fp-btn" href="/vehicle/map?vehicle_id=${v.id}">
+        <i class="bi bi-map-fill me-1"></i>Ver detalle
+      </a>
+    </div>`;
+  }
+
+  // ── Sidebar row HTML ────────────────────────────────────────────
+  function sidebarRowHtml(v) {
+    const t = (v.type || 'auto').toLowerCase();
+    const iconMap = { auto:'🚗', moto:'🏍️', barco:'🚢', perro:'🐕', gato:'🐈' };
+    const emoji = iconMap[t] || '🚗';
+    const dotClass = v.vehicle_on ? 'on' : 'off';
+    return `<div class="fleet-vehicle-item" data-vid="${v.id}" id="row_${v.id}">
+      <span class="fv-icon">${emoji}</span>
+      <div class="fv-info">
+        <div class="fv-name">${v.name}</div>
+        <div class="fv-meta">${v.patente} &bull; <span id="sp_${v.id}">${Number(v.speed||0).toFixed(1)}</span> km/h</div>
+      </div>
+      <div class="fleet-dot ${dotClass}" id="dot_${v.id}" title="${v.vehicle_on ? 'Encendido' : 'Apagado'}"></div>
+    </div>`;
+  }
+
+  // ── Init ────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', function() {
+
+    // Map
+    const map = L.map('fleetMap');
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const listEl = document.getElementById('vehicleListEl');
+    const titleEl = document.getElementById('fleetTitle');
+
+    if (!VEHICLES || VEHICLES.length === 0) {
+      // Empty state
+      listEl.innerHTML = `<div class="fleet-empty"><i class="bi bi-map display-6"></i><p>No hay vehículos activos.</p></div>`;
+      map.setView([-34.6037, -58.3816], 12);
+      titleEl.textContent = '0 vehículos';
+      return;
+    }
+
+    titleEl.textContent = `${VEHICLES.length} vehículo${VEHICLES.length !== 1 ? 's' : ''}`;
+
+    // Build sidebar + markers
+    const bounds = [];
+    VEHICLES.forEach(v => {
+      listEl.insertAdjacentHTML('beforeend', sidebarRowHtml(v));
+      const latlng = [v.lat, v.lng];
+      bounds.push(latlng);
+      const m = L.marker(latlng, { icon: vehicleIcon(v.type, v.vehicle_on) })
+        .bindPopup(popupHtml(v), { maxWidth: 220 })
+        .addTo(map);
+
+      m.on('click', () => setActiveRow(v.id));
+      markers[v.id] = m;
+    });
+
+    // Fit map to show all vehicles
+    if (bounds.length === 1) {
+      map.setView(bounds[0], 15);
+    } else {
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+    }
+
+    // Sidebar row click
+    listEl.addEventListener('click', function(e) {
+      const row = e.target.closest('.fleet-vehicle-item');
+      if (!row) return;
+      const vid = parseInt(row.dataset.vid);
+      const m = markers[vid];
+      if (m) {
+        map.flyTo(m.getLatLng(), 16, { duration: 0.8 });
+        setTimeout(() => m.openPopup(), 900);
+        setActiveRow(vid);
+      }
+      // On mobile collapse panel after click
+      if (window.innerWidth < 768) collapseSidebar();
+    });
+
+    // ── WebSocket connections per vehicle ────────────────────────
+    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    VEHICLES.forEach(v => {
+      const ws = new WebSocket(`${proto}://${window.location.host}/ws/vehicle/${v.id}/`);
+      wsConns[v.id] = ws;
+
+      ws.onmessage = function(evt) {
+        try {
+          const d = JSON.parse(evt.data);
+          if (String(d.vehicle_id) !== String(v.id)) return;
+
+          const lat = parseFloat(d.lat), lng = parseFloat(d.lng);
+          const speed = parseFloat(d.speed || 0);
+          const vehicleOn = !!d.vehicle_on;
+          const lu = d.last_updated || '';
+
+          // Update marker position + icon
+          const m = markers[v.id];
+          if (m) {
+            if (!isNaN(lat) && !isNaN(lng) && !(lat === 0 && lng === 0)) {
+              m.setLatLng([lat, lng]);
+            }
+            m.setIcon(vehicleIcon(v.type, vehicleOn));
+
+            // Refresh popup if open
+            if (m.isPopupOpen()) {
+              v.lat = lat; v.lng = lng; v.speed = speed;
+              v.vehicle_on = vehicleOn; v.last_updated = lu;
+              m.setPopupContent(popupHtml(v));
+            }
+          }
+
+          // Update sidebar row
+          const dot = document.getElementById(`dot_${v.id}`);
+          if (dot) { dot.className = `fleet-dot ${vehicleOn ? 'on' : 'off'}`; dot.title = vehicleOn ? 'Encendido' : 'Apagado'; }
+          const sp = document.getElementById(`sp_${v.id}`);
+          if (sp) sp.textContent = (isNaN(speed) ? 0 : speed).toFixed(1);
+
+          // Sync cached data
+          v.speed = speed; v.vehicle_on = vehicleOn; v.last_updated = lu;
+          if (!isNaN(lat) && !isNaN(lng)) { v.lat = lat; v.lng = lng; }
+
+        } catch(e) { /* ignore parse errors */ }
+      };
+
+      ws.onerror = () => console.warn(`WS error for vehicle ${v.id}`);
+    });
+
+    // ── Mobile drag to expand/collapse sidebar ───────────────────
+    const toggleBtn = document.getElementById('togglePanel');
+    const toggleIcon = document.getElementById('toggleIcon');
+    const sidebar = document.getElementById('fleetSidebar');
+
+    toggleBtn.addEventListener('click', () => {
+      if (sidebar.classList.contains('expanded')) {
+        collapseSidebar();
+      } else {
+        sidebar.classList.add('expanded');
+        toggleIcon.className = 'bi bi-chevron-down';
+      }
+    });
+
+    function collapseSidebar() {
+      sidebar.classList.remove('expanded');
+      toggleIcon.className = 'bi bi-chevron-up';
+    }
+
+    // Invalidate map size if container resizes (sidebar toggle)
+    new ResizeObserver(() => map.invalidateSize()).observe(document.getElementById('fleetMap'));
+  });
+
+  // ── Active row highlight ─────────────────────────────────────────
+  function setActiveRow(vid) {
+    document.querySelectorAll('.fleet-vehicle-item').forEach(r => r.classList.remove('active'));
+    const row = document.getElementById(`row_${vid}`);
+    if (row) {
+      row.classList.add('active');
+      row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+</script>
+{% endblock %}

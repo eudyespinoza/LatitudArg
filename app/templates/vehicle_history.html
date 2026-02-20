@@ -1,43 +1,48 @@
 ﻿{% extends 'base.html' %}
 {% block content %}
 <div class="card mb-4 shadow-sm">
-  <div class="card-header d-flex justify-content-between align-items-center">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
       <h2 class="mb-0">Historial de Recorridos</h2>
-      <small class="text-muted">{{ vehicle.name }} ({{ vehicle.patente }})</small>
+      <small class="text-muted">{{ vehicle.name }} &bull; {{ vehicle.patente }}</small>
     </div>
-    <div>
-      <a class="btn btn-outline-primary btn-sm" href="{{ url_for('main.vehicle_map', vehicle_id=vehicle.id) }}"><i class="bi bi-geo-alt me-1"></i>Mapa en vivo</a>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('main.dashboard') }}"><i class="bi bi-arrow-left me-1"></i><span class="d-none d-sm-inline">Volver</span></a>
+      <a class="btn btn-outline-primary btn-sm" href="{{ url_for('main.vehicle_map', vehicle_id=vehicle.id) }}"><i class="bi bi-geo-alt me-1"></i><span class="d-none d-sm-inline">Mapa en vivo</span></a>
     </div>
   </div>
-  <div class="card-body">
-    <form id="history-form" class="row g-2 align-items-end mb-3">
-      <div class="col-md-4">
-        <label class="form-label">Desde</label>
-        <input type="datetime-local" class="form-control" id="from" value="{{ default_from }}">
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Hasta</label>
-        <input type="datetime-local" class="form-control" id="to" value="{{ default_to }}">
-      </div>
-      <div class="col-12">
-        <div class="chips">
-          <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="1h"><i class="bi bi-lightning-charge"></i> 1 h</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="6h">6 h</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="12h">12 h</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="24h">24 h</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="7d">7 días</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="hoy"><i class="bi bi-calendar-day"></i> Hoy</button>
+  <div class="card-body p-3">
+    <form id="history-form" class="mb-3">
+      <div class="row g-2 align-items-end mb-2">
+        <div class="col-6 col-md-4">
+          <label class="form-label mb-1 small fw-semibold">Desde</label>
+          <input type="datetime-local" class="form-control form-control-sm" id="from" value="{{ default_from }}">
+        </div>
+        <div class="col-6 col-md-4">
+          <label class="form-label mb-1 small fw-semibold">Hasta</label>
+          <input type="datetime-local" class="form-control form-control-sm" id="to" value="{{ default_to }}">
         </div>
       </div>
-      <div class="col-md-4 d-flex gap-2">
-        <button type="button" id="load-history" class="btn btn-primary flex-grow-1"><i class="bi bi-activity me-1"></i>Mostrar historial</button>
-        <a id="download-csv" class="btn btn-outline-secondary" href="#"><i class="bi bi-download me-1"></i>CSV</a>
+      <div class="chips mb-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="1h"><i class="bi bi-lightning-charge"></i> 1h</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="6h">6h</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="12h">12h</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="24h">24h</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="7d">7 días</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm chip" data-q="hoy"><i class="bi bi-calendar-day"></i> Hoy</button>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="button" id="load-history" class="btn btn-primary btn-sm flex-grow-1">
+          <i class="bi bi-activity me-1"></i>Ver historial
+        </button>
+        <a id="download-csv" class="btn btn-outline-secondary btn-sm" href="#">
+          <i class="bi bi-download me-1"></i><span class="d-none d-sm-inline">CSV</span>
+        </a>
       </div>
     </form>
-    <div id="map" class="rounded shadow-sm" style="height: 460px; width: 100%;"></div>
-    <div class="mt-3">
-      <span class="badge bg-info me-2" id="points-count">0 puntos</span>
+    <div id="map" class="rounded shadow-sm" style="width: 100%;"></div>
+    <div class="mt-2 d-flex gap-2">
+      <span class="badge bg-info" id="points-count">0 puntos</span>
       <span class="badge bg-secondary" id="distance-total">0 km</span>
     </div>
   </div>

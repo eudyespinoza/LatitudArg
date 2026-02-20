@@ -270,6 +270,31 @@ def update_vehicle(request):
 
 
 @login_required
+def fleet_map(request):
+    import json as _json
+    vehicles_qs = Vehicle.objects.filter(user_id=request.user.id, status='active')
+    vehicles_data = []
+    for v in vehicles_qs:
+        vehicles_data.append({
+            'id': v.id,
+            'name': v.name,
+            'type': (v.type or 'auto').lower(),
+            'patente': v.patente,
+            'lat': float(v.lat) if v.lat else -34.6037,
+            'lng': float(v.lng) if v.lng else -58.3816,
+            'vehicle_on': bool(v.vehicle_on),
+            'shutdown': bool(v.shutdown),
+            'speed': float(v.speed or 0),
+            'signal_quality': int(v.signal_quality or 0),
+            'last_updated': v.last_updated or 'N/A',
+        })
+    return render(request, 'fleet_map.html', {
+        'vehicles_json': _json.dumps(vehicles_data),
+        'vehicle_count': vehicles_qs.count(),
+    })
+
+
+@login_required
 def vehicle_map(request):
     vehicle_id = request.GET.get('vehicle_id')
     if not vehicle_id:

@@ -17,6 +17,7 @@ urlpatterns = [
     path('update_vehicle', views.update_vehicle, name='update_vehicle'),
     path('vehicle/map', views.vehicle_map, name='vehicle_map'),
     path('vehicle/history', views.vehicle_history, name='vehicle_history'),
+    path('vehicles/fleet', views.fleet_map, name='fleet_map'),
 
     path('api/update_location', views.api_update_location, name='api_update_location'),
     path('api/vehicle/<int:vehicle_id>/history', views.api_vehicle_history, name='api_vehicle_history'),

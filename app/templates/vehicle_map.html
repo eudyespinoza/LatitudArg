@@ -1,63 +1,62 @@
 ﻿{% extends 'base.html' %}
 {% block content %}
 <div class="card mb-4 shadow-sm">
-    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div>
             <h2 class="mb-0">{{ vehicle.name }}</h2>
-            <span id="vehicle-state" class="badge bg-{% if vehicle.vehicle_on %}success{% else %}danger{% endif %}">{{ 'Encendido' if vehicle.vehicle_on else 'Apagado' }}</span>
+            <div class="d-flex align-items-center gap-2 mt-1">
+                <span id="vehicle-state" class="badge bg-{% if vehicle.vehicle_on %}success{% else %}danger{% endif %}">{{ 'Encendido' if vehicle.vehicle_on else 'Apagado' }}</span>
+                <span class="text-muted small">{{ vehicle.patente }} &bull; {{ vehicle.type }}</span>
+            </div>
         </div>
-        <div>
-            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('main.vehicle_history', vehicle_id=vehicle.id) }}"><i class="bi bi-clock-history me-1"></i>Historial</a>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('main.dashboard') }}"><i class="bi bi-arrow-left me-1"></i><span class="d-none d-sm-inline">Volver</span></a>
+            <a class="btn btn-outline-primary btn-sm" href="{{ url_for('main.vehicle_history', vehicle_id=vehicle.id) }}"><i class="bi bi-clock-history me-1"></i><span class="d-none d-sm-inline">Historial</span></a>
         </div>
     </div>
-    <div class="card-body">
-        <div class="row g-2 mb-3">
-            <div class="col-lg-6">
-                <div id="map" class="rounded shadow-sm" style="height: 400px; width: 100%;"></div>
+    <div class="card-body p-2 p-md-3">
+        <div class="row g-2 mb-0">
+            <div class="col-12 col-lg-6">
+                <div id="map" class="rounded shadow-sm" style="width: 100%;"></div>
             </div>
-            <div class="col-lg-6">
-                <div class="card vehicle-info-card h-100">
-                    <div class="card-body">
+            <div class="col-12 col-lg-6">
+                <div class="card vehicle-info-card h-100 border">
+                    <div class="card-body p-3">
+                        <p class="section-title mb-2"><i class="bi bi-info-circle me-1"></i>Información del vehículo</p>
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><strong>Patente:</strong> {{ vehicle.patente }}</li>
-                            <li class="list-group-item"><strong>ID Dispositivo:</strong> {{ vehicle.device_id or 'N/A' }}</li>
-                            <li class="list-group-item"><strong>Telefono GPS:</strong> {{ vehicle.device_phone or 'N/A' }}</li>
-                            <li class="list-group-item"><strong>Latitud:</strong>
+                            <li class="list-group-item d-flex justify-content-between"><span class="text-muted small">Patente</span><strong>{{ vehicle.patente }}</strong></li>
+                            <li class="list-group-item d-flex justify-content-between"><span class="text-muted small">ID Dispositivo</span><span>{{ vehicle.device_id or 'N/A' }}</span></li>
+                            <li class="list-group-item d-flex justify-content-between"><span class="text-muted small">Tel. GPS</span><span>{{ vehicle.device_phone or 'N/A' }}</span></li>
+                            <li class="list-group-item d-flex justify-content-between"><span class="text-muted small">Latitud</span>
                                 {% if vehicle.lat|float == 0.0 and vehicle.lng|float == 0.0 %}
-                                    <span id="lat">Señal GPS perdida</span>
+                                    <span id="lat" class="text-warning small"><i class="bi bi-exclamation-triangle me-1"></i>Sin señal</span>
                                 {% else %}
                                     <span id="lat">{{ vehicle.lat|default(-34.6037, true)|float|round(6) }}</span>
                                 {% endif %}
                             </li>
-                            <li class="list-group-item"><strong>Longitud:</strong>
+                            <li class="list-group-item d-flex justify-content-between"><span class="text-muted small">Longitud</span>
                                 {% if vehicle.lat|float == 0.0 and vehicle.lng|float == 0.0 %}
-                                    <span id="lng">Señal GPS perdida</span>
+                                    <span id="lng" class="text-warning small"><i class="bi bi-exclamation-triangle me-1"></i>Sin señal</span>
                                 {% else %}
                                     <span id="lng">{{ vehicle.lng|default(-58.3816, true)|float|round(6) }}</span>
                                 {% endif %}
                             </li>
-                            <li class="list-group-item"><strong>Velocidad:</strong> <span id="speed">{{ vehicle.speed|default(0.0)|float|round(2) }} km/h</span></li>
-                            <li class="list-group-item"><strong>Señal:</strong>
+                            <li class="list-group-item d-flex justify-content-between"><span class="text-muted small">Velocidad</span><span id="speed" class="fw-semibold">{{ vehicle.speed|default(0.0)|float|round(2) }} km/h</span></li>
+                            <li class="list-group-item d-flex justify-content-between"><span class="text-muted small">Señal</span>
                                 {% set signal = (vehicle.signal_quality or 0)|int %}
                                 <span class="signal-bars {% if signal < 13 %}low{% elif signal < 25 %}medium{% else %}high{% endif %}" id="signal-quality">
-                                    {% if signal <= 6 %}
-                                        <i class="bi bi-reception-0"></i>
-                                    {% elif signal <= 12 %}
-                                        <i class="bi bi-reception-1"></i>
-                                    {% elif signal <= 18 %}
-                                        <i class="bi bi-reception-2"></i>
-                                    {% elif signal <= 24 %}
-                                        <i class="bi bi-reception-3"></i>
-                                    {% else %}
-                                        <i class="bi bi-reception-4"></i>
-                                    {% endif %}
+                                    {% if signal <= 6 %}<i class="bi bi-reception-0"></i>
+                                    {% elif signal <= 12 %}<i class="bi bi-reception-1"></i>
+                                    {% elif signal <= 18 %}<i class="bi bi-reception-2"></i>
+                                    {% elif signal <= 24 %}<i class="bi bi-reception-3"></i>
+                                    {% else %}<i class="bi bi-reception-4"></i>{% endif %}
                                 </span>
                             </li>
-                            <li class="list-group-item"><strong>Última Actualización:</strong> <span id="last-updated">{{ vehicle.last_updated|default('N/A', true) }}</span></li>
-                            <li class="list-group-item"><strong>Comando:</strong> <span class="badge bg-{% if not vehicle.shutdown %}success{% else %}danger{% endif %}" id="control-state">{{ 'Encendido' if not vehicle.shutdown else 'Apagado' }}</span></li>
-                            <li class="list-group-item"><strong>Audio:</strong> <span class="badge bg-{% if vehicle.transmit_audio %}success{% else %}danger{% endif %}" id="audio-state">{{ 'Activada' if vehicle.transmit_audio else 'Desactivada' }}</span></li>
+                            <li class="list-group-item d-flex justify-content-between"><span class="text-muted small">Comando</span><span class="badge bg-{% if not vehicle.shutdown %}success{% else %}danger{% endif %}" id="control-state">{{ 'Encendido' if not vehicle.shutdown else 'Apagado' }}</span></li>
+                            <li class="list-group-item d-flex justify-content-between"><span class="text-muted small">Audio</span><span class="badge bg-{% if vehicle.transmit_audio %}success{% else %}danger{% endif %}" id="audio-state">{{ 'Activado' if vehicle.transmit_audio else 'Desactivado' }}</span></li>
+                            <li class="list-group-item d-flex justify-content-between"><span class="text-muted small">Última act.</span><span id="last-updated" class="small">{{ vehicle.last_updated|default('N/A', true) }}</span></li>
                         </ul>
-                        <div class="mt-3 d-flex gap-2">
+                        <div class="mt-3 action-row">
                             <button id="shutdownToggle" class="btn btn-outline-{% if not vehicle.shutdown %}success{% else %}danger{% endif %} btn-sm transition shutdown-toggle" title="{{ 'Apagar Vehículo' if not vehicle.shutdown else 'Encender Vehículo' }}">
                                 <i class="bi bi-power {% if not vehicle.shutdown %}text-success{% else %}text-danger{% endif %} me-1"></i> {{ 'Apagar' if not vehicle.shutdown else 'Encender' }}
                             </button>
@@ -65,7 +64,7 @@
                                 <i class="bi {% if vehicle.transmit_audio %}bi-volume-mute text-danger{% else %}bi-volume-up text-success{% endif %} me-1"></i> {{ 'Desactivar' if vehicle.transmit_audio else 'Activar' }} Audio
                             </button>
                             <button id="call911" class="btn btn-outline-danger btn-sm transition" title="Llamar al 911" data-bs-toggle="modal" data-bs-target="#call911Modal">
-                                <i class="bi bi-telephone me-1"></i> 911
+                                <i class="bi bi-telephone-fill me-1"></i> 911
                             </button>
                         </div>
                     </div>
@@ -75,7 +74,7 @@
     </div>
 </div>
 
-<div class="modal fade" id="shutdownModal" tabindex="-1" aria-labelledby="shutdownModalLabel" aria-hidden="true">
+<div class="modal fade" id="shutdownModal" tabindex="-1" role="dialog" aria-labelledby="shutdownModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header bg-light border-0">
@@ -86,7 +85,7 @@
                 <p class="text-muted"><i class="bi bi-exclamation-circle me-2 text-warning"></i>¿Estás seguro de que deseas <span id="shutdownActionText"></span> este vehículo?</p>
             </div>
             <div class="modal-footer border-0">
-                <button type="button" class="btn btn-outline-secondary btn-sm transition shadow-sm" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-outline-secondary btn-sm transition shadow-sm" data-bs-dismiss="modal" autofocus>
                     <i class="bi bi-x-circle me-2"></i>Cancelar
                 </button>
                 <button type="button" class="btn btn-sm transition shadow-sm" id="confirmShutdown">
@@ -97,7 +96,7 @@
     </div>
 </div>
 
-<div class="modal fade" id="call911Modal" tabindex="-1" aria-labelledby="call911ModalLabel" aria-hidden="true">
+<div class="modal fade" id="call911Modal" tabindex="-1" role="dialog" aria-labelledby="call911ModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header bg-danger text-white border-0">
@@ -108,7 +107,7 @@
                 <p class="text-muted"><i class="bi bi-exclamation-triangle-fill me-2 text-danger"></i>¿Estás seguro de que deseas realizar una llamada de emergencia al 911?</p>
             </div>
             <div class="modal-footer border-0">
-                <button type="button" class="btn btn-outline-secondary btn-sm transition shadow-sm" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-outline-secondary btn-sm transition shadow-sm" data-bs-dismiss="modal" autofocus>
                     <i class="bi bi-x-circle me-2"></i>Cancelar
                 </button>
                 <button type="button" class="btn btn-danger btn-sm transition shadow-sm" id="confirmEmergency">
@@ -122,7 +121,7 @@
 <script src="{{ url_for('static', filename='js/map.js') }}"></script>
 <script src="{{ url_for('static', filename='js/shutdown.js') }}"></script>
 <script>
-    let currentVehicleId = null;
+    let currentVehicleId = '{{ vehicle.id }}';
     let shutdownAction = null;
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -164,46 +163,6 @@
             notification.innerHTML = `
                 <i class="bi ${data.status === 'success' ? 'bi-info-circle' : 'bi-exclamation-circle'} me-2"></i>
                 ${data.message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            `;
-            document.getElementById('notification-container').appendChild(notification);
-            setTimeout(() => {
-                notification.classList.remove('animate__fadeInDown');
-                notification.classList.add('animate__fadeOutUp');
-                setTimeout(() => notification.remove(), 500);
-            }, 5000);
-        })
-        .catch(error => {
-            const notification = document.createElement('div');
-            notification.className = 'alert alert-danger alert-dismissible fade show modern-alert shadow-sm animate__animated animate__fadeInDown';
-            notification.innerHTML = `
-                <i class="bi bi-exclamation-circle me-2"></i>
-                Error: ${error}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            `;
-            document.getElementById('notification-container').appendChild(notification);
-            setTimeout(() => {
-                notification.classList.remove('animate__fadeInDown');
-                notification.classList.add('animate__fadeOutUp');
-                setTimeout(() => notification.remove(), 500);
-            }, 5000);
-        });
-    }
-
-    function call911() {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('call911Modal'));
-        modal.hide();
-        fetch(`/api/vehicle/${currentVehicleId}/emergency`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        })
-        .then(response => response.json())
-        .then(data => {
-            const notification = document.createElement('div');
-            notification.className = `alert alert-${data.status === 'success' ? 'primary' : 'danger'} alert-dismissible fade show modern-alert shadow-sm animate__animated animate__fadeInDown`;
-            notification.innerHTML = `
-                <i class="bi ${data.status === 'success' ? 'bi-info-circle' : 'bi-exclamation-circle'} me-2"></i>
-                ${data.status === 'success' ? 'Llamada de emergencia realizada.' : data.message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             `;
             document.getElementById('notification-container').appendChild(notification);

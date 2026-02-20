@@ -1,14 +1,25 @@
 ﻿{% extends 'base.html' %}
 {% block content %}
-<div class="card mb-4 shadow-sm">
-    <div class="card-header">
-        <h2 class="mb-0">Alta de clientes</h2>
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4 p-md-5">
+        <div class="text-center mb-4">
+          <i class="bi bi-person-plus-fill fs-1 text-primary"></i>
+          <h2 class="mt-2 mb-0 fw-semibold">Alta de clientes</h2>
+        </div>
+        <p class="text-muted mb-3">Las cuentas de LatitudArg las configuramos nosotros para que recibas el servicio listo para usar. Completá el formulario de contacto y coordinamos contigo la activación.</p>
+        <a href="{{ url_for('main.index') }}?landing=1#contact" class="btn btn-primary w-100">
+          <i class="bi bi-chat-dots-fill me-2"></i>Ir al formulario de contacto
+        </a>
+        <hr class="my-4">
+        <p class="text-center text-muted small mb-0">
+          ¿Ya sos cliente?
+          <a href="{{ url_for('main.login') }}" class="transition fw-semibold">Iniciá sesión</a>
+        </p>
+      </div>
     </div>
-    <div class="card-body">
-        <p class="mb-3">Las cuentas de LatitudArg las configuramos nosotros para que recibas el servicio listo para usar. Completa el formulario de contacto y coordinamos contigo la activación.</p>
-        <a href="{{ url_for('main.index') }}?landing=1#contact" class="btn btn-primary">Ir al formulario de contacto</a>
-        <p class="mt-3 text-muted mb-0">¿Ya sos cliente? <a href="{{ url_for('main.login') }}" class="transition">Inicia sesión</a>.</p>
-    </div>
+  </div>
 </div>
 {% endblock %}
 

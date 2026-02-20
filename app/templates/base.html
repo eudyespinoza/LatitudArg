@@ -2,7 +2,11 @@
 <html lang="es" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" id="meta-theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>LatitudArg • GPS en Tiempo Real</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -16,11 +20,13 @@
         <div class="container">
             <a class="navbar-brand d-flex align-items-center gap-2" href="/?landing=1">
                 <img src="{{ url_for('static', filename='img/latitudarg-logo.svg') }}" alt="LatitudArg" style="height: 32px;">
-                <span class="fw-semibold"></span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+            <div class="d-flex align-items-center gap-2 d-lg-none ms-auto">
+                <button id="theme-toggle-mobile" class="btn btn-outline-secondary btn-sm transition" title="Cambiar tema"><i class="bi bi-sun-fill"></i></button>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     {% if request.user.is_authenticated %}
@@ -36,7 +42,7 @@
                         <li class="nav-item"><a class="nav-link transition" href="{{ url_for('main.login') }}"><i class="bi bi-box-arrow-in-right me-1"></i>Iniciar Sesión</a></li>
                         <li class="nav-item"><a class="nav-link transition" href="{{ url_for('main.index') }}?landing=1#contact"><i class="bi bi-chat-dots-fill me-1"></i>Consultanos</a></li>
                     {% endif %}
-                    <li class="nav-item">
+                    <li class="nav-item d-none d-lg-flex">
                         <button id="theme-toggle" class="btn btn-outline-secondary ms-2 transition" title="Cambiar tema"><i class="bi bi-sun-fill"></i></button>
                     </li>
                 </ul>
@@ -44,7 +50,38 @@
         </div>
     </nav>
 
-    <div class="container mt-4">
+    {% if request.user.is_authenticated %}
+    <nav class="mobile-bottom-nav" aria-label="Navegación principal">
+        <a href="{{ url_for('main.dashboard') }}" class="{% if request.resolver_match and 'dashboard' in request.resolver_match.url_name %}bnav-active{% endif %}">
+            <i class="bi bi-speedometer2"></i>
+            <span>Inicio</span>
+        </a>
+        <a href="{{ url_for('main.fleet_map') }}" class="{% if request.resolver_match and 'fleet' in request.resolver_match.url_name %}bnav-active{% endif %}">
+            <i class="bi bi-map-fill"></i>
+            <span>Mapa</span>
+        </a>
+        {% if request.user.role == 'admin' %}
+        <a href="{{ url_for('main.admin_panel') }}">
+            <i class="bi bi-gear-fill"></i>
+            <span>Admin</span>
+        </a>
+        {% endif %}
+        <a href="{{ url_for('main.profile') }}">
+            <i class="bi bi-person-circle"></i>
+            <span>Perfil</span>
+        </a>
+        <a href="{{ url_for('main.logout') }}">
+            <i class="bi bi-box-arrow-right"></i>
+            <span>Salir</span>
+        </a>
+        <button class="bnav-btn" id="theme-toggle-bnav" title="Cambiar tema">
+            <i class="bi bi-sun-fill"></i>
+            <span>Tema</span>
+        </button>
+    </nav>
+    {% endif %}
+
+    <div class="container mt-3 mt-lg-4">
         <div id="notification-container" class="position-fixed top-0 end-0 p-3" style="z-index:1050;">
             {% if messages %}
                 {% for message in messages %}
@@ -66,9 +103,7 @@
                 <a class="text-muted" href="/#pricing">Precios</a>
                 <a class="text-muted" href="mailto:{{ contact_email|default('contacto@latitudarg.com', true) }}">Contacto</a>
                 <a class="text-muted" href="#">Privacidad</a>
-            <span class="ms-3">
-                <script type="text/javascript">const tlJsHost = ((window.location.protocol == "https:") ? "https://secure.trust-provider.com/" : "http://www.trustlogo.com/"); document.write(unescape("<script src='" + tlJsHost + "trustlogo/javascript/trustlogo.js' type='text/javascript' %3E%3C/script%3E"));</script>
-            </span>
+            <span class="ms-3" id="trustlogo-container"></span>
             </div>
         </div>
     </footer>
@@ -78,37 +113,75 @@
     <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const themeToggle = document.getElementById('theme-toggle');
             const htmlElement = document.documentElement;
             const navbar = document.querySelector('.navbar');
-            if (localStorage.getItem('theme') === 'dark') {
-                htmlElement.setAttribute('data-theme', 'dark');
-                navbar.setAttribute('data-bs-theme', 'dark');
-                navbar.classList.remove('bg-light');
-                navbar.classList.add('bg-dark');
-                themeToggle.innerHTML = '<i class="bi bi-moon-stars-fill"></i>';
-            }
-            themeToggle.addEventListener('click', () => {
-                if (htmlElement.getAttribute('data-theme') === 'light') {
+            const metaTheme = document.getElementById('meta-theme-color');
+
+            // All theme toggle buttons (desktop, mobile header, bottom nav)
+            const toggleBtns = [
+                document.getElementById('theme-toggle'),
+                document.getElementById('theme-toggle-mobile'),
+                document.getElementById('theme-toggle-bnav'),
+            ].filter(Boolean);
+
+            const MOON_ICON = '<i class="bi bi-moon-stars-fill"></i>';
+            const SUN_ICON  = '<i class="bi bi-sun-fill"></i>';
+
+            function applyTheme(dark) {
+                if (dark) {
                     htmlElement.setAttribute('data-theme', 'dark');
                     navbar.setAttribute('data-bs-theme', 'dark');
-                    navbar.classList.remove('bg-light');
-                    navbar.classList.add('bg-dark');
-                    themeToggle.innerHTML = '<i class="bi bi-moon-stars-fill"></i>';
-                    localStorage.setItem('theme', 'dark');
+                    navbar.classList.replace('bg-light', 'bg-dark');
+                    if (metaTheme) metaTheme.setAttribute('content', '#1f2a44');
+                    toggleBtns.forEach(b => b.innerHTML = MOON_ICON);
                 } else {
                     htmlElement.setAttribute('data-theme', 'light');
                     navbar.setAttribute('data-bs-theme', 'light');
-                    navbar.classList.remove('bg-dark');
-                    navbar.classList.add('bg-light');
-                    themeToggle.innerHTML = '<i class="bi bi-sun-fill"></i>';
-                    localStorage.setItem('theme', 'light');
+                    navbar.classList.replace('bg-dark', 'bg-light');
+                    if (metaTheme) metaTheme.setAttribute('content', '#ffffff');
+                    toggleBtns.forEach(b => b.innerHTML = SUN_ICON);
+                }
+            }
+
+            // Apply saved theme on load
+            applyTheme(localStorage.getItem('theme') === 'dark');
+
+            // Add body class for bottom nav spacing
+            const bottomNav = document.querySelector('.mobile-bottom-nav');
+            if (bottomNav) document.body.classList.add('has-bottom-nav');
+
+            // Wire all toggle buttons
+            toggleBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const isDark = htmlElement.getAttribute('data-theme') === 'dark';
+                    applyTheme(!isDark);
+                    localStorage.setItem('theme', isDark ? 'light' : 'dark');
+                });
+            });
+
+            // Highlight active bottom-nav link
+            const path = window.location.pathname;
+            document.querySelectorAll('.mobile-bottom-nav a').forEach(a => {
+                if (a.getAttribute('href') && path.startsWith(a.getAttribute('href')) && a.getAttribute('href') !== '/') {
+                    a.classList.add('bnav-active');
                 }
             });
         });
     </script>
 
     {% block extra_js %}{% endblock %}
+    <script>
+    (function(){
+        var container = document.getElementById('trustlogo-container');
+        if (!container) return;
+        var s = document.createElement('script');
+        s.src = (window.location.protocol === 'https:' ?
+            'https://secure.trust-provider.com/' :
+            'http://www.trustlogo.com/') + 'trustlogo/javascript/trustlogo.js';
+        s.async = true;
+        container.appendChild(s);
+    })();
+    </script>
 </body>
 </html>
 

@@ -461,3 +461,269 @@ h1, h2, h3, h4, h5, h6 {
 .transition {
     transition: all 0.2s ease;
 }
+
+/* ============================================================
+   MOBILE-FIRST ENHANCEMENTS
+   ============================================================ */
+
+/* Smooth scroll */
+html { scroll-behavior: smooth; }
+
+/* iOS: prevent auto-zoom when tapping inputs (font-size >= 16px) */
+@media (max-width: 767px) {
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="datetime-local"],
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* Sticky navbar */
+.navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+}
+
+/* Touch-friendly targets */
+.btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.btn-sm { min-height: 38px; }
+
+/* ---- Bottom navigation (mobile only) ---- */
+.mobile-bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 1029;
+    background: var(--navbar-bg);
+    border-top: 1px solid var(--input-border);
+    box-shadow: 0 -2px 16px rgba(0,0,0,.1);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.mobile-bottom-nav a,
+.mobile-bottom-nav button.bnav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: .45rem .25rem;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-size: .6rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color .2s;
+    min-height: 54px;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-bottom-nav a i,
+.mobile-bottom-nav button.bnav-btn i {
+    font-size: 1.35rem;
+    line-height: 1;
+}
+
+.mobile-bottom-nav a:hover,
+.mobile-bottom-nav button.bnav-btn:hover,
+.mobile-bottom-nav a.bnav-active {
+    color: var(--primary) !important;
+}
+
+@media (max-width: 991px) {
+    .mobile-bottom-nav { display: flex; }
+    body.has-bottom-nav {
+        padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+/* ---- Auth pages: centered card ---- */
+.auth-wrapper {
+    min-height: calc(100vh - 160px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 0;
+}
+.auth-card {
+    width: 100%;
+    max-width: 440px;
+}
+@media (max-width: 576px) {
+    .auth-wrapper { align-items: flex-start; padding-top: 1rem; }
+}
+
+/* ---- Dashboard toolbar: stack on mobile ---- */
+@media (max-width: 576px) {
+    .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .toolbar .form-control,
+    .toolbar .form-select {
+        max-width: 100% !important;
+    }
+    .toolbar .ms-auto {
+        margin-left: 0 !important;
+        font-size: .8rem;
+    }
+}
+
+/* ---- Stats grid: always 2-col on mobile ---- */
+@media (max-width: 576px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    .stat-card { padding: .65rem .75rem; gap: .5rem; }
+    .stat-card .icon { width: 36px; height: 36px; font-size: 1rem; }
+    .stat-card .value { font-size: 1.05rem; }
+    .stat-card .label { font-size: .72rem; }
+}
+
+/* ---- Vehicle card action buttons: 2-col grid on mobile ---- */
+.action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+}
+@media (max-width: 640px) {
+    .action-row {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+    }
+    .action-row .btn { width: 100%; justify-content: center; }
+    .action-row .btn-full { grid-column: span 2; }
+}
+
+/* ---- Map: responsive heights ---- */
+#map {
+    height: 420px;
+}
+@media (max-width: 992px) {
+    #map { height: 360px; }
+}
+@media (max-width: 576px) {
+    #map {
+        height: 50vh;
+        min-height: 260px;
+        max-height: 340px;
+    }
+}
+
+/* ---- History chips: horizontal scroll on mobile ---- */
+.chips {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+}
+.chips::-webkit-scrollbar { display: none; }
+.chips .chip { flex-shrink: 0; }
+
+/* ---- Notification container: above bottom nav on mobile ---- */
+@media (max-width: 576px) {
+    #notification-container {
+        left: 0 !important;
+        right: 0 !important;
+        top: auto !important;
+        bottom: calc(58px + env(safe-area-inset-bottom, 0px)) !important;
+        padding: .5rem !important;
+    }
+    #notification-container .alert { width: 100%; }
+}
+
+/* ---- Modals: bottom sheet on mobile ---- */
+@media (max-width: 576px) {
+    /* Posicionar el modal al fondo sin tocar display ni z-index de Bootstrap */
+    .modal {
+        align-items: flex-end !important;
+        display: flex !important;
+    }
+    .modal.fade:not(.show) .modal-dialog {
+        transform: translateY(100%);
+    }
+    .modal.show .modal-dialog {
+        transform: translateY(0);
+    }
+    .modal-dialog {
+        margin: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        transition: transform 0.3s ease-out !important;
+    }
+    .modal-content {
+        border-radius: 20px 20px 0 0 !important;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+}
+
+/* ---- Card header on mobile ---- */
+@media (max-width: 576px) {
+    .card-header { padding: .7rem 1rem; }
+    .card-header h2 { font-size: 1.15rem; }
+    .card-header .btn-sm { font-size: .75rem; padding: .25rem .5rem; }
+}
+
+/* ---- Accordion body: tighter on mobile ---- */
+@media (max-width: 576px) {
+    .accordion-body { padding: .75rem .65rem; }
+}
+
+/* ---- Footer: centered on mobile ---- */
+@media (max-width: 576px) {
+    footer .d-flex.flex-wrap {
+        flex-direction: column;
+        align-items: center;
+        gap: .5rem;
+        text-align: center;
+    }
+    footer .d-flex.gap-3 { justify-content: center; }
+}
+
+/* ---- Landing hero ---- */
+@media (max-width: 767px) {
+    #landing-map { height: 240px !important; }
+    .display-5 { font-size: 1.75rem; }
+    .hero-cta { flex-direction: column !important; }
+    .hero-cta .btn { width: 100%; }
+}
+
+/* ---- vehicle_map: side panel on mobile ---- */
+@media (max-width: 992px) {
+    .vehicle-info-card {
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+        margin-top: 0;
+    }
+    .vehicle-info-card .list-group-item {
+        padding: .45rem .5rem;
+        font-size: .875rem;
+    }
+}
+
+/* Section title helper */
+.section-title {
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: .75rem;
+    padding-bottom: .4rem;
+    border-bottom: 1px solid var(--input-border);
+}

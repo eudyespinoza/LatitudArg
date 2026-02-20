@@ -9,7 +9,7 @@
         <span class="badge rounded-pill bg-primary-subtle text-primary mb-3"><i class="bi bi-broadcast-pin me-1"></i>Geolocalización en Vivo</span>
         <h1 class="display-5 fw-bold mb-3">Tu flota bajo control, con dispositivo propio</h1>
         <p class="lead text-muted">Fabricamos nuestro dispositivo GPS y brindamos soporte integral del servicio y del equipo. Monitorea vehículos y activos en tiempo real con precisión de mapa, alertas inteligentes y reportes claros que impulsan decisiones más rápidas y seguras.</p>
-        <div class="d-flex gap-2 mt-3">
+        <div class="d-flex gap-2 mt-3 hero-cta">
           <a href="#contact" class="btn btn-primary btn-lg"><i class="bi bi-person-plus me-2"></i>Consultanos</a>
           <a href="{{ url_for('main.login') }}" class="btn btn-outline-primary btn-lg"><i class="bi bi-box-arrow-in-right me-2"></i>Iniciar sesión</a>
         </div>
@@ -216,9 +216,11 @@
                 <label class="form-label" for="contact-message">Mensaje</label>
                 <textarea class="form-control" id="contact-message" name="message" rows="4" required placeholder="Contanos cuantas unidades queres monitorear y donde operan"></textarea>
               </div>
-              <div class="col-12 d-flex justify-content-between align-items-center">
-                <small class="text-muted">Te respondemos dentro de las 24 horas habiles.</small>
-                <button type="submit" class="btn btn-primary">Enviar consulta</button>
+              <div class="col-12">
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                  <small class="text-muted">Te respondemos dentro de las 24 horas hábiles.</small>
+                  <button type="submit" class="btn btn-primary w-100 w-sm-auto">Enviar consulta</button>
+                </div>
               </div>
             </form>
           </div>
@@ -233,8 +235,10 @@
   <div class="container">
     <h3 class="fw-semibold mb-2">Listos para monitorear tu flota?</h3>
     <p class="text-white-50 mb-4">Hablemos y configuramos todo por vos.</p>
-    <a href="#contact" class="btn btn-light btn-lg me-2"><i class="bi bi-chat-dots me-1"></i>Consultar ahora</a>
-    <a href="{{ url_for('main.login') }}" class="btn btn-outline-light btn-lg"><i class="bi bi-box-arrow-in-right me-1"></i>Iniciar sesión</a>
+    <div class="d-flex gap-2 flex-column flex-sm-row justify-content-center">
+      <a href="#contact" class="btn btn-light btn-lg"><i class="bi bi-chat-dots me-1"></i>Consultar ahora</a>
+      <a href="{{ url_for('main.login') }}" class="btn btn-outline-light btn-lg"><i class="bi bi-box-arrow-in-right me-1"></i>Iniciar sesión</a>
+    </div>
   </div>
 </section>
 

@@ -28,6 +28,7 @@ def environment(**options):
             'main.update_vehicle': 'update_vehicle',
             'main.vehicle_map': 'vehicle_map',
             'main.vehicle_history': 'vehicle_history',
+            'main.fleet_map': 'fleet_map',
         }
         name = mapping.get(endpoint)
         if not name:
