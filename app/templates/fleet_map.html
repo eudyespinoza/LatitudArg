@@ -1,10 +1,20 @@
 {% extends 'base.html' %}
 {% block content %}
 <style>
+  /* Prevent document-level scroll from fighting Leaflet touch events */
+  html, body {
+    overflow: hidden;
+    height: 100%;
+    overscroll-behavior: none;
+  }
+  /* Remove container padding/margin for full-bleed fleet layout */
+  .container { padding: 0 !important; margin-top: 0 !important; }
+
   /* Fleet layout: sidebar + map */
   .fleet-layout {
     display: flex;
-    height: calc(100dvh - 90px);
+    /* desktop: 100dvh minus sticky navbar (~58px) */
+    height: calc(100dvh - 58px);
     border-radius: var(--card-radius, .75rem);
     overflow: hidden;
     box-shadow: 0 2px 12px rgba(0,0,0,.1);
@@ -31,7 +41,13 @@
     background: var(--card-bg, #fff);
   }
   .fleet-sidebar-header h6 { flex: 1; margin: 0; font-size: .85rem; color: var(--text-muted, #6c757d); }
-  .fleet-vehicle-list { overflow-y: auto; flex: 1; }
+  .fleet-vehicle-list {
+    overflow-y: auto;
+    flex: 1;
+    -webkit-overflow-scrolling: touch; /* momentum scroll on iOS */
+    overscroll-behavior: contain;      /* prevent body scroll bleed  */
+    touch-action: pan-y;               /* let browser handle vertical scroll, not Leaflet */
+  }
 
   .fleet-vehicle-item {
     padding: .65rem 1rem;
@@ -57,7 +73,12 @@
   .fleet-dot.off { background: #dc3545; box-shadow: 0 0 0 2px rgba(220,53,69,.25); }
 
   /* ── Map ───────────────────────────────────── */
-  .fleet-map { flex: 1; z-index: 1; }
+  .fleet-map {
+    flex: 1;
+    z-index: 1;
+    touch-action: none; /* let Leaflet fully own touch gestures on the map */
+    will-change: transform; /* promote to compositor layer */
+  }
 
   /* Leaflet popup */
   .fleet-popup strong { display: block; font-size: .9rem; }
@@ -82,7 +103,9 @@
   @media (max-width: 767px) {
     .fleet-layout {
       flex-direction: column;
-      height: calc(100dvh - 110px);
+      /* mobile: 100dvh minus navbar (~58px) + bottom nav (~56px) */
+      height: calc(100dvh - 114px);
+      border-radius: 0;
     }
     .fleet-map { order: 1; flex: 1; min-height: 0; }
     .fleet-sidebar {
