@@ -482,11 +482,16 @@ html { scroll-behavior: smooth; }
     }
 }
 
-/* Sticky navbar */
+/* Sticky navbar with auto-hide on scroll */
 .navbar {
     position: sticky;
     top: 0;
     z-index: 1030;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.navbar.navbar-hidden {
+    transform: translateY(-100%);
+    box-shadow: none !important;
 }
 
 /* Touch-friendly targets */
