@@ -43,12 +43,11 @@ def environment(**options):
 
     @pass_context
     def csrf_field(ctx):
-        try:
-            request = ctx.get('request')
-            token = get_token(request) if request else ''
-            return mark_safe(f'<input type="hidden" name="csrfmiddlewaretoken" value="{token}">')
-        except Exception:
-            return ''
+        request = ctx.get('request')
+        if request is None:
+            return mark_safe('<input type="hidden" name="csrfmiddlewaretoken" value="">')
+        token = get_token(request)
+        return mark_safe(f'<input type="hidden" name="csrfmiddlewaretoken" value="{token}">')
 
     env.globals.update(url_for=url_for, csrf_field=csrf_field)
     return env
